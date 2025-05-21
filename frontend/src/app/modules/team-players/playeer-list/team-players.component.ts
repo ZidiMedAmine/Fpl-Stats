@@ -76,6 +76,7 @@ export class TeamPlayersComponent implements OnInit {
       next: (user) => {
         this.user = user;
         this.players = user.players;
+        this.updateNavBarDetails(this.user);
         this.players = this.calculateCaptaincyStats(user.players);
         this.sortPlayersByPosition();
         this.calculatedPlayedTime();
@@ -238,5 +239,12 @@ export class TeamPlayersComponent implements OnInit {
         playedPoints
       };
     });
+  }
+
+  private updateNavBarDetails(user: UserInfo):  void {
+    this.sharedService.updateUserName(user.name);
+    this.sharedService.updateTeamName(user.teamName);
+    this.sharedService.updateTotalPoints(user.totalPoints);
+    this.sharedService.updateOverallRank(user.overallRank);
   }
 }

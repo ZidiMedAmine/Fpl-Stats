@@ -1,0 +1,16 @@
+<div class="home-container">
+  <h1 class="welcome-title">Track Your FPL Team Like a Pro</h1>
+  <p>Enter your Fantasy Premier League team to view detailed stats and insights for each player.</p>
+  <form (ngSubmit)="searchTeam()" #teamForm="ngForm" class="search-form">
+    <label for="fplId">Enter your FPL ID</label>
+    <input
+      type="text"
+      id="fplId"
+      name="fplId"
+      required
+      [(ngModel)]="fplId"
+      placeholder="e.g. 123456"
+    />
+    <button type="submit">Search</button>
+  </form>
+</div>

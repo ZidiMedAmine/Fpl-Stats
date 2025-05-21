@@ -1,0 +1,40 @@
+.grid-container {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  grid-template-rows: auto 1fr auto;
+  gap: 0;
+  height: 100vh;
+  width: 100vw;
+}
+
+.header-container {
+  grid-column: span 5;
+  background-color: #3f51b5;
+  color: white;
+}
+
+.main-container {
+  grid-column: span 5;
+  overflow: auto;
+  overflow-x: hidden;
+  padding: 1rem;
+}
+
+.footer-container {
+  grid-column: span 5;
+  color: black;
+}
+
+.header-container,
+.footer-container {
+  grid-column: span 5;
+  height: 60px; /* or any fixed height you want */
+  display: flex;
+  align-items: center;
+  padding: 0 1rem;
+}
+
+app-header {
+  width: 100%;
+  padding: 1.5rem;
+}

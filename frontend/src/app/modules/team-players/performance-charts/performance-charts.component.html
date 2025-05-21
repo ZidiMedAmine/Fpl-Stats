@@ -1,4 +1,4 @@
-<div *ngIf="activeChart === 'total'">
+<div *ngIf="activeChart === 'total'" class="chart-container">
   <h3>Total GameWeek Points</h3>
   <canvas baseChart
           [data]="totalPointsChart"
@@ -7,7 +7,7 @@
   </canvas>
 </div>
 
-<div *ngIf="activeChart === 'captain'">
+<div *ngIf="activeChart === 'captain'" class="chart-container">
   <h3>Captain Points</h3>
   <canvas baseChart
           [data]="captainPointsChart"
@@ -16,7 +16,7 @@
   </canvas>
 </div>
 
-<div *ngIf="activeChart === 'bench'">
+<div *ngIf="activeChart === 'bench'" class="chart-container">
   <h3>Bench Points</h3>
   <canvas baseChart
           [data]="benchPointsChart"

@@ -6,6 +6,7 @@
 
 * {
   animation: none !important;
+  overflow: hidden;
 }
 
 .loader {
@@ -46,3 +47,31 @@
     transform: rotate(1turn);
   }
 }
+
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  font-family: 'Segoe UI', sans-serif;
+  background-color: #ffffff;
+  color: #333;
+}
+
+app-root {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+/*.footer-container {
+  position: fixed;
+  bottom: 0;
+  height: 3rem; !* h-12 = 3rem *!
+  width: 100%;
+}*/
