@@ -13,6 +13,8 @@ export class TeamService {
   constructor(protected http: HttpClient) {}
 
   getTeamPlayers(teamId: number): Observable<UserInfo> {
-    return this.http.get<UserInfo>(`${this.apiUrl}/team-players/${teamId}`);
+    const url = `https://fpl-stats-6zlu.onrender.com/api/fpl/team-players/${teamId}`;
+
+    return this.http.get<UserInfo>(`${url}`);
   }
 }
