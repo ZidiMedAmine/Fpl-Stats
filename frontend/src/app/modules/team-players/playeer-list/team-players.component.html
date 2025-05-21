@@ -34,9 +34,6 @@
       [activeChart]="activeChart">
     </app-performance-charts>
   </div>
-  <div *ngIf="isLoading" class="spinner-container">
-    <mat-spinner></mat-spinner>
-  </div>
 
   <div *ngIf="!isLoading" class="table-container">
     <table mat-table [dataSource]="players" class="mat-elevation-z8">

@@ -6,6 +6,7 @@ import {GameWeekPerformance} from "../../../core/models/game-week-performance.mo
 import {UserInfo} from "../../../core/models/UserInfo.model";
 import {PlayerDetailsComponent} from "../player-details/player-details.component";
 import {MatDialog} from '@angular/material/dialog';
+import {SharedService} from "../../../shared/shared.service";
 
 @Component({
   selector: 'app-team-players',
@@ -14,12 +15,15 @@ import {MatDialog} from '@angular/material/dialog';
 })
 export class TeamPlayersComponent implements OnInit {
   user?: UserInfo;
-  players: Player[] = [];
-  isLoading = true;
   activeChart = '';
+  isLoading = true;
+  players: Player[] = [];
   displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'details'];
 
-  constructor(protected teamService: TeamService, protected route: ActivatedRoute, protected dialog: MatDialog) { }
+  constructor(protected sharedService: SharedService,
+              protected teamService: TeamService,
+              protected route: ActivatedRoute,
+              protected dialog: MatDialog) { }
 
   public ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
@@ -66,6 +70,7 @@ export class TeamPlayersComponent implements OnInit {
    */
   public loadTeamPlayers(teamId: number): void {
     this.isLoading = true;
+    this.sharedService.displayPageLoader();
     this.teamService.getTeamPlayers(teamId).subscribe({
       next: (user) => {
         this.user = user;
@@ -75,6 +80,7 @@ export class TeamPlayersComponent implements OnInit {
         this.calculatedPlayedTime();
         this.enrichPlayerStats();
         this.isLoading = false;
+        this.sharedService.removeLoader();
       },
       error: (err) => {
         console.error('Error loading team players', err);
