@@ -1,0 +1,15 @@
+<nav class="navbar">
+  <a class="nav-brand" href="/">Home</a>
+  <div class="nav-items">
+    <div class="team-info">
+      <span class="team-name"  *ngIf="teamName$ | async as teamName"><strong>{{ teamName | titlecase }}</strong></span>
+      <span class="user-name"  *ngIf="userName$ | async as userName"><strong>({{ userName | titlecase }})</strong></span>
+    </div>
+    <span *ngIf="totalPoints$ | async as totalPoints" class="nav-item">
+      Total Points: <strong>{{ totalPoints }}</strong>
+    </span>
+    <span *ngIf="overallRank$ | async as overallRank" class="nav-item">
+      Overall Rank: <strong>{{ overallRank }}</strong>
+    </span>
+  </div>
+</nav>

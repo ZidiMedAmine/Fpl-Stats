@@ -1,21 +1,4 @@
 <div class="container" *ngIf="user">
-  <mat-toolbar color="primary" class="team-toolbar">
-    <div class="toolbar-left">
-      <span class="toolbar-title">My FPL Team</span>
-      <div class="team-info">
-        <span class="team-name">{{ user.teamName | titlecase }}</span>
-        <span class="user-name">({{ user.name | titlecase }})</span>
-      </div>
-    </div>
-
-    <div class="toolbar-right">
-      <div class="stats">
-        <span>Total Points: <strong>{{ user.totalPoints }}</strong></span>
-        <span>Rank: <strong>{{ user.overallRank }}</strong></span>
-      </div>
-    </div>
-  </mat-toolbar>
-
   <div *ngIf="user">
     <div class="chart-controls">
       <button [class.active]="activeChart === 'total'" (click)="showChart('total')">

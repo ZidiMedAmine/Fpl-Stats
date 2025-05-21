@@ -11,10 +11,17 @@ import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import {MatTableModule} from "@angular/material/table";
 import {MatDialogModule} from "@angular/material/dialog";
 import {NgChartsModule} from "ng2-charts";
+import { HeaderComponent } from './layouts/header/header.component';
+import { FooterComponent } from './layouts/footer/footer.component';
+import { HomeComponent } from './layouts/home/home.component';
+import {FormsModule} from "@angular/forms";
 
 @NgModule({
   declarations: [
-    AppComponent],
+    AppComponent,
+    HeaderComponent,
+    FooterComponent,
+    HomeComponent],
   imports: [
     BrowserModule,
     AppRoutingModule,
@@ -27,6 +34,7 @@ import {NgChartsModule} from "ng2-charts";
     MatProgressSpinnerModule,
     MatTableModule,
     NgChartsModule,
+    FormsModule,
   ],
   providers: [],
   bootstrap: [AppComponent]
