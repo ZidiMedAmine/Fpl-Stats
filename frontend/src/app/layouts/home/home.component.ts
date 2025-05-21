@@ -11,7 +11,12 @@ export class HomeComponent {
 
   constructor(protected router: Router) {}
 
-  searchTeam() {
+  /**
+   * Navigates to the team players page using the provided FPL ID.
+   *
+   * If `fplId` is defined, the router navigates to the `/team-players/:fplId` route.
+   */
+  searchTeam(): void {
     if (this.fplId) {
       this.router.navigate(['/team-players', this.fplId]).then();
     }
