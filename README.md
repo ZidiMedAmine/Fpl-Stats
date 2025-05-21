@@ -18,3 +18,25 @@ A full-stack application for tracking Fantasy Premier League (FPL) player statis
 
 ## 📂 Project Structure
 
+fpl-stats/
+│
+├── backend/ # Spring Boot application
+│ └── src/
+│ └── main/java/com/fpl/stats/...
+│
+├── web/ # Angular application
+│ └── src/app/...
+│
+├── README.md
+└── .gitignore
+
+📈 Features
+Retrieve real-time player history from FPL API
+
+Cache and optimize player/team data
+
+Calculate average points, total points per team
+
+Determine captains, triple captains, and bench history
+
+Easily extendable and scalable
