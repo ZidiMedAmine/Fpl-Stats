@@ -1,0 +1,158 @@
+<h2 mat-dialog-title>
+  <div class="player-header">
+    <img [src]="data.player.photoCode | playerImage"
+         alt="{{ data.player.name }}"
+         class="player-photo">
+    <span class="player-position">{{data.player.position}}</span>
+    <span class="player-name">{{data.player.name}}</span>
+  </div>
+
+  <div class="dialog-actions">
+    <button mat-button mat-dialog-close>Close</button>
+  </div>
+
+</h2>
+<div mat-dialog-content>
+  <div class="summary-stats">
+    <div class="stat-card">
+      <div class="stat-value">{{data.player.totalPointsForTeam}}</div>
+      <div class="stat-label">Total Points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{data.player.avgPoints | number:'1.1-1'}}</div>
+      <div class="stat-label">Avg Points</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ getSelectedGwPoints() }}</div>
+      <div class="stat-label">Selected GW Points</div>
+    </div>
+    <div class="stat-card" *ngIf="data.player.position !== 'Manager'">
+      <div class="stat-value">{{ getBenchedPoints() }}</div>
+      <div class="stat-label">Points on Bench</div>
+    </div>
+  </div>
+
+  <h3 class="section-title">GW Performance</h3>
+
+  <table mat-table [dataSource]="getFilteredPerformances()" class="performance-table compact-table">
+
+    <!-- gameWeek Column -->
+    <ng-container matColumnDef="gameWeek">
+      <th mat-header-cell *matHeaderCellDef>GW</th>
+      <td mat-cell *matCellDef="let perf">
+        <span>{{perf.gameWeek}}</span>
+      </td>
+    </ng-container>
+
+    <!-- Points Column -->
+    <ng-container matColumnDef="points">
+      <th mat-header-cell *matHeaderCellDef>Points</th>
+      <td mat-cell *matCellDef="let perf"
+          [class.captain-points]="perf.wasCaptain"
+          [class.benched-points]="perf.wasBenched">
+        <span class="points-value">{{ calculatePoints(perf) }}</span>
+        <span
+          *ngIf="perf.wasBenched && data.player.position !== 'Manager'"
+          class="bench-badge"
+          matTooltip="Benched">
+      B
+    </span>
+      </td>
+    </ng-container>
+
+    <!-- Captaincy Column -->
+    <ng-container matColumnDef="captaincy">
+      <th mat-header-cell *matHeaderCellDef>Captaincy</th>
+      <td mat-cell *matCellDef="let perf">
+        <span *ngIf="perf.wasTripleCaptain" class="captain-badge triple"
+              matTooltip="Triple Captain">TC</span>
+        <span *ngIf="!perf.wasTripleCaptain && perf.wasCaptain" class="captain-badge"
+              matTooltip="Captain">C</span>
+        <span *ngIf="perf.wasViceCaptain" class="vice-badge" matTooltip="Vice Captain">VC</span>
+      </td>
+    </ng-container>
+
+    <!-- Bonus Column -->
+    <ng-container matColumnDef="bonus">
+      <th mat-header-cell *matHeaderCellDef>Bonus</th>
+      <td mat-cell *matCellDef="let perf">
+        <span *ngIf="perf.bonusPoints > 0;else noBonus" class="bonus-badge">
+          +{{perf.bonusPoints}}
+        </span>
+        <ng-template #noBonus>
+          <span>-</span>
+        </ng-template>
+      </td>
+    </ng-container>
+
+    <!-- Goals Column -->
+    <ng-container matColumnDef="goals">
+      <th mat-header-cell *matHeaderCellDef>G</th>
+      <td mat-cell *matCellDef="let perf" class="goals-cell">
+      <span *ngIf="perf.goalsScored > 0" class="goal-badge">
+        {{perf.goalsScored}}
+      </span>
+        <span *ngIf="perf.goalsScored === 0">-</span>
+      </td>
+    </ng-container>
+
+    <!-- Assists Column -->
+    <ng-container matColumnDef="assists">
+      <th mat-header-cell *matHeaderCellDef>A</th>
+      <td mat-cell *matCellDef="let perf" class="assists-cell">
+      <span *ngIf="perf.assists > 0" class="assist-badge">
+        {{perf.assists}}
+      </span>
+        <span *ngIf="perf.assists === 0">-</span>
+      </td>
+    </ng-container>
+
+    <!-- Clean Sheet Column -->
+    <ng-container matColumnDef="cleanSheet">
+      <th mat-header-cell *matHeaderCellDef>CS</th>
+      <td mat-cell *matCellDef="let perf" class="clean-sheet-cell">
+        <ng-container *ngIf="perf.minutesPlayed > 0; else noMinutes">
+          <mat-icon *ngIf="perf.cleanSheet" class="clean-sheet-yes">check_circle</mat-icon>
+          <mat-icon *ngIf="!perf.cleanSheet" class="clean-sheet-no">cancel</mat-icon>
+        </ng-container>
+        <ng-template #noMinutes>-</ng-template>
+      </td>
+    </ng-container>
+
+
+    <!-- Minutes Played Column -->
+    <ng-container matColumnDef="minutes">
+      <th mat-header-cell *matHeaderCellDef>Mins</th>
+      <td mat-cell *matCellDef="let perf"
+          [class.full-match]="perf.minutesPlayed >= 90"
+          [class.partial-match]="perf.minutesPlayed > 0 && perf.minutesPlayed < 90"
+          [class.no-play]="perf.minutesPlayed === 0">
+        {{perf.minutesPlayed}}
+      </td>
+    </ng-container>
+
+
+    <!-- Cards Column -->
+    <ng-container matColumnDef="cards">
+      <th mat-header-cell *matHeaderCellDef>Cards</th>
+      <td mat-cell *matCellDef="let perf" class="cards-cell">
+        <div class="cards-container">
+          <!-- Yellow Cards -->
+          <div *ngFor="let _ of [].constructor(perf.yellowCards)" class="card yellow">
+            <div class="card-corner"></div>
+          </div>
+
+          <!-- Red Cards -->
+          <div *ngFor="let _ of [].constructor(perf.redCards)" class="card red">
+            <div class="card-corner"></div>
+          </div>
+
+          <!-- No Cards -->
+          <span *ngIf="perf.yellowCards === 0 && perf.redCards === 0">-</span>
+        </div>
+      </td>
+    </ng-container>
+    <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  </table>
+</div>

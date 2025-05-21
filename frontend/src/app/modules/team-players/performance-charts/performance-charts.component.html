@@ -1,0 +1,26 @@
+<div *ngIf="activeChart === 'total'">
+  <h3>Total GameWeek Points</h3>
+  <canvas baseChart
+          [data]="totalPointsChart"
+          [options]="chartOptions"
+          [type]="'line'">
+  </canvas>
+</div>
+
+<div *ngIf="activeChart === 'captain'">
+  <h3>Captain Points</h3>
+  <canvas baseChart
+          [data]="captainPointsChart"
+          [options]="chartOptions"
+          [type]="'line'">
+  </canvas>
+</div>
+
+<div *ngIf="activeChart === 'bench'">
+  <h3>Bench Points</h3>
+  <canvas baseChart
+          [data]="benchPointsChart"
+          [options]="chartOptions"
+          [type]="'line'">
+  </canvas>
+</div>
