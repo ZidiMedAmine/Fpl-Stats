@@ -10,11 +10,11 @@ import {environment} from "../../../environments/environment";
 export class TeamService {
   protected apiUrl = `${environment.apiBaseUrl}/fpl`;
 
-  constructor(protected http: HttpClient) {}
+  constructor(protected http: HttpClient) {
+    console.log(this.apiUrl)
+  }
 
   getTeamPlayers(teamId: number): Observable<UserInfo> {
-    const url = `https://fpl-stats-6zlu.onrender.com/api/fpl/team-players/${teamId}`;
-
-    return this.http.get<UserInfo>(`${url}`);
+    return this.http.get<UserInfo>(`${this.apiUrl}/team-players/${teamId}`);
   }
 }

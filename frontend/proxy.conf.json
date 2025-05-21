@@ -1,8 +1,0 @@
-{
-  "/api": {
-    "target": "https://fpl-stats-6zlu.onrender.com",
-    "secure": false,
-    "changeOrigin": true,
-    "logLevel": "debug"
-  }
-}
