@@ -1,0 +1,141 @@
+<div class="container" *ngIf="user">
+  <mat-toolbar color="primary" class="team-toolbar">
+    <div class="toolbar-left">
+      <span class="toolbar-title">My FPL Team</span>
+      <div class="team-info">
+        <span class="team-name">{{ user?.teamName | titlecase }}</span>
+        <span class="user-name">({{ user?.name | titlecase }})</span>
+      </div>
+    </div>
+
+    <div class="toolbar-right">
+      <div class="stats">
+        <span>Total Points: <strong>{{ user?.totalPoints }}</strong></span>
+        <span>Rank: <strong>{{ user?.overallRank }}</strong></span>
+      </div>
+    </div>
+  </mat-toolbar>
+
+  <div *ngIf="user">
+    <div class="chart-controls">
+      <button [class.active]="activeChart === 'total'" (click)="showChart('total')">
+        Total GameWeek Points
+      </button>
+      <button [class.active]="activeChart === 'captain'" (click)="showChart('captain')">
+        Captain Points
+      </button>
+      <button [class.active]="activeChart === 'bench'" (click)="showChart('bench')">
+        Bench Points
+      </button>
+    </div>
+
+    <app-performance-charts
+      [user]="user"
+      [activeChart]="activeChart">
+    </app-performance-charts>
+  </div>
+
+  <div *ngIf="!isLoading" class="table-container">
+    <table mat-table [dataSource]="players" class="mat-elevation-z8">
+      <!-- Add photo column definition -->
+      <ng-container matColumnDef="photo">
+        <th mat-header-cell *matHeaderCellDef></th>
+        <td mat-cell *matCellDef="let player">
+          <img [src]="player.photoCode | playerImage"
+               alt="{{player.name}}"
+               class="player-photo">
+        </td>
+      </ng-container>
+
+      <!-- Name Column -->
+      <ng-container matColumnDef="name">
+        <th mat-header-cell *matHeaderCellDef>Player</th>
+        <td mat-cell *matCellDef="let player" [title]="'Player'">
+          {{ player.name }}
+        </td>
+      </ng-container>
+      <!-- Position Column -->
+      <ng-container matColumnDef="position">
+        <th mat-header-cell *matHeaderCellDef>Position</th>
+        <td mat-cell *matCellDef="let player" [title]="'Position'">
+          {{ player.position }}
+      </ng-container>
+
+      <!-- Avg Points Column -->
+      <ng-container matColumnDef="avgPoints">
+        <th mat-header-cell *matHeaderCellDef>Avg Points</th>
+        <td mat-cell *matCellDef="let player">
+          <div
+            class="circle"
+            [ngStyle]="getNameColorStyle(player.avgPoints)"
+            [title]="'Avg Points'"
+          >
+            {{ player.avgPoints | number: '1.1-1' }}
+          </div>
+        </td>
+      </ng-container>
+
+      <!-- Times Selected Column -->
+      <ng-container matColumnDef="timesSelected">
+        <th mat-header-cell *matHeaderCellDef>Times Selected</th>
+        <td mat-cell *matCellDef="let player" [title]="'Times Selected'">{{player.timesSelected}}</td>
+      </ng-container>
+
+      <!-- Bench Points Column -->
+      <ng-container matColumnDef="benchPoints">
+        <th mat-header-cell *matHeaderCellDef>Bench Points</th>
+        <td mat-cell *matCellDef="let player" [title]="'Bench Points'">
+          {{ player.position === 'Manager' ? '-' : player.benchPoints }}
+        </td>
+      </ng-container>
+
+      <!-- Times on Bench Column -->
+      <ng-container matColumnDef="timesOnBench">
+        <th mat-header-cell *matHeaderCellDef>Times on Bench</th>
+        <td mat-cell *matCellDef="let player" [title]="'Times on Bench'">
+          {{ player.position === 'Manager' ? '-' : player.timesOnBench }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="timesCaptained">
+        <th mat-header-cell *matHeaderCellDef>Captained</th>
+        <td mat-cell *matCellDef="let player" [title]="'Captained'">
+          {{ player.position === 'Manager' ? '-' : player.timesCaptained }}
+        </td>
+      </ng-container>
+
+      <ng-container matColumnDef="timesViceCaptained">
+        <th mat-header-cell *matHeaderCellDef>Vice Captained</th>
+        <td mat-cell *matCellDef="let player" [title]="'Vice Captained'">
+          {{ player.position === 'Manager' ? '-' : player.timesViceCaptained }}
+        </td>
+      </ng-container>
+
+      <!-- Played Points Column -->
+      <ng-container matColumnDef="playedPoints">
+        <th mat-header-cell *matHeaderCellDef>Points When Played</th>
+        <td mat-cell *matCellDef="let player" [title]="'Points When Played'">{{ player.playedPoints }}</td>
+      </ng-container>
+
+      <!-- Total Points Column -->
+      <ng-container matColumnDef="totalPointsForTeam">
+        <th mat-header-cell *matHeaderCellDef>Total Points</th>
+        <td mat-cell *matCellDef="let player" [title]="'Total Points'">{{player.totalPointsForTeam}}</td>
+      </ng-container>
+
+      <!-- Add a details column -->
+      <ng-container matColumnDef="details">
+        <th mat-header-cell *matHeaderCellDef>Details</th>
+        <td mat-cell *matCellDef="let player">
+          <button mat-icon-button (click)="openPlayerDetails(player)">
+            <mat-icon>info</mat-icon>
+          </button>
+        </td>
+      </ng-container>
+
+      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
+      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+    </table>
+
+  </div>
+</div>
