@@ -27,7 +27,8 @@ export class TeamPlayersComponent implements OnInit {
 
   public ngOnInit(): void {
     this.route.paramMap.subscribe(params => {
-      const teamId = params.get('id'); // assuming route param is named 'id'
+      const teamId = params.get('id');
+      console.log("loading user",  teamId);
       if (teamId) {
         this.loadTeamPlayers(+teamId);
       }

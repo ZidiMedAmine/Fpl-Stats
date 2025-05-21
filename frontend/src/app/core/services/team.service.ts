@@ -15,6 +15,7 @@ export class TeamService {
   }
 
   getTeamPlayers(teamId: number): Observable<UserInfo> {
+    console.log("fetching user",  teamId, "from url",  this.apiUrl);
     return this.http.get<UserInfo>(`${this.apiUrl}/team-players/${teamId}`);
   }
 }
