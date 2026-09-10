@@ -9,6 +9,12 @@ const routes: Routes = [
     loadChildren: () =>
       import('./modules/team-players/team-players.module').then(m => m.TeamPlayersModule)
   },
+  {
+    path: 'compare',
+    loadChildren: () =>
+      import('./modules/compare-teams/compare-teams.module').then(m => m.CompareTeamsModule)
+  },
+  { path: '**', redirectTo: '' },
 ];
 
 @NgModule({

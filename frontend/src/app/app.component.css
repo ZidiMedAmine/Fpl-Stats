@@ -9,32 +9,34 @@
 
 .header-container {
   grid-column: span 5;
-  background-color: #3f51b5;
-  color: white;
+  background-color: var(--color-primary-dark);
+  color: var(--color-nav-text);
 }
 
 .main-container {
   grid-column: span 5;
   overflow: auto;
   overflow-x: hidden;
-  padding: 1rem;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 .footer-container {
   grid-column: span 5;
-  color: black;
+  background-color: var(--color-primary-dark);
+  color: var(--color-nav-text);
 }
 
 .header-container,
 .footer-container {
-  grid-column: span 5;
-  height: 60px; /* or any fixed height you want */
   display: flex;
+  justify-content: start;
   align-items: center;
-  padding: 0 1rem;
+  padding: 0;
 }
 
-app-header {
+app-header,
+app-footer {
   width: 100%;
-  padding: 1.5rem;
 }

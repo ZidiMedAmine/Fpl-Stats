@@ -1,16 +1,64 @@
-<div class="home-container">
-  <h1 class="welcome-title">Track Your FPL Team Like a Pro</h1>
-  <p>Enter your Fantasy Premier League team to view detailed stats and insights for each player.</p>
-  <form (ngSubmit)="searchTeam()" #teamForm="ngForm" class="search-form">
-    <label for="fplId">Enter your FPL ID</label>
-    <input
-      type="text"
-      id="fplId"
-      name="fplId"
-      required
-      [(ngModel)]="fplId"
-      placeholder="e.g. 123456"
-    />
-    <button type="submit">Search</button>
-  </form>
+<div class="home-page">
+  <div class="hero">
+    <div class="deco-circle deco-left"></div>
+    <div class="deco-circle deco-right"></div>
+
+    <div class="hero-content">
+      <span class="eyebrow">Fantasy Premier League Analytics</span>
+      <h1 class="hero-title">Track Your FPL Team<br>Like a Pro</h1>
+      <p class="hero-subtitle">Enter your Fantasy Premier League team to view detailed stats and insights for each player.</p>
+
+      <form (ngSubmit)="searchTeam()" #teamForm="ngForm" class="search-form">
+        <label class="search-label" for="fplId">Enter your FPL ID</label>
+        <div class="search-box">
+          <span class="search-icon-wrap">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/>
+            </svg>
+          </span>
+          <div class="search-input-area">
+            <input
+              type="text"
+              id="fplId"
+              name="fplId"
+              required
+              [(ngModel)]="fplId"
+              placeholder="e.g. 123456"
+              class="search-input"
+              autocomplete="off"
+            />
+          </div>
+          <button type="submit" class="search-btn">Search</button>
+        </div>
+      </form>
+
+      <div class="recent-searches" *ngIf="recentSearches.length > 0">
+        <span class="recent-label">Recent:</span>
+        <button
+          *ngFor="let r of recentSearches"
+          class="recent-chip"
+          type="button"
+          (click)="openRecent(r)">
+          {{ r.teamName || r.fplId }}
+        </button>
+      </div>
+    </div>
+  </div>
+
+ <!-- <div class="stats-strip">
+    <div class="stat-item">
+      <span class="stat-value">38 GWs</span>
+      <span class="stat-desc">of per-player history</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value">12 stats</span>
+      <span class="stat-desc">per player, every week</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-value">2 teams</span>
+      <span class="stat-desc">head-to-head compare</span>
+    </div>
+  </div>-->
 </div>

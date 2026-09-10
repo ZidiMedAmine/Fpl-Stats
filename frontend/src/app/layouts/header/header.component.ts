@@ -18,12 +18,9 @@ export class HeaderComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    this.userName$ = this.sharedService.userName.asObservable();
-    this.teamName$ = this.sharedService.teamName.asObservable();
-    this.totalPoints$ = this.sharedService.totalPoints.asObservable();
-    this.overallRank$ = this.sharedService.overallRank.asObservable();
+    this.userName$ = this.sharedService.userName$.asObservable();
+    this.teamName$ = this.sharedService.teamName$.asObservable();
+    this.totalPoints$ = this.sharedService.totalPoints$.asObservable();
+    this.overallRank$ = this.sharedService.overallRank$.asObservable();
   }
-
-
-
 }
