@@ -1,80 +1,32 @@
 package com.fpl.stats.services;
 
-import com.fpl.stats.domain.GameWeekPerformance;
-import com.fpl.stats.domain.Player;
-import com.fpl.stats.domain.UserInfo;
-import com.fpl.stats.services.fpl.FplApiService;
-import com.fpl.stats.services.fpl.TeamPicksService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
+import com.fpl.stats.exception.TeamNotFoundException;
+import com.fpl.stats.services.dto.CompareDto;
+import com.fpl.stats.services.dto.UserTeamDto;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+/**
+ * Service for querying FPL user team data from the local database.
+ */
+public interface UserInfoService {
 
-@Service
-public class UserInfoService {
-    private final FplApiService fplApiService;
-    private final TeamPicksService teamPicksService;
-    private static final Logger logger = LoggerFactory.getLogger(UserInfoService.class);
+    /**
+     * Returns full team information for the given FPL team ID, including players,
+     * gameweek performances, rank history, and overall rank change.
+     *
+     * @param fplTeamId the FPL team/entry ID
+     * @return a fully populated {@link UserTeamDto}
+     * @throws TeamNotFoundException if no team with the given ID exists in the database
+     */
+    UserTeamDto getUserTeamInfo(long fplTeamId);
 
-    public UserInfoService(FplApiService fplApiService, TeamPicksService teamPicksService) {
-        this.fplApiService = fplApiService;
-        this.teamPicksService = teamPicksService;
-    }
-
-    public UserInfo getUserInfo(int teamId) {
-        logger.info("Fetching team players for team id {}", teamId);
-        Map<Integer, List<Map<String, Object>>> teamPicksByGw = getAllTeamPicksByGameWeek(teamId);
-        Set<Integer> playerIds = fplApiService.getPlayersUsedByTeam(teamPicksByGw);
-        Map<Integer, Map<String, String>> playerInfo = fplApiService.getPlayerInfo();
-        UserInfo user = fplApiService.getUserInfo(teamId);
-        user.setPlayers(playerIds.stream()
-                .map(id -> buildPlayerData(id, teamId, playerInfo, teamPicksByGw)).toList());
-        return user;
-    }
-
-    private Player buildPlayerData(int playerId, int teamId, Map<Integer, Map<String, String>> playerInfo, Map<Integer, List<Map<String, Object>>> teamPicksByGw) {
-        Player player = new Player();
-        player.setId(playerId);
-        player.setName(playerInfo.get(playerId).get("name"));
-        player.setPosition(playerInfo.get(playerId).get("position"));
-        player.setPhotoCode(playerInfo.get(playerId).get("photoCode"));
-        List<GameWeekPerformance> performances = fplApiService.getPlayerHistory(playerId, teamId, teamPicksByGw);
-            player.setPerformances(performances);
-
-        calculatePlayerStats(player, performances);
-
-        return player;
-    }
-
-    private void calculatePlayerStats(Player player, List<GameWeekPerformance> performances) {
-        int totalPoints = performances.stream()
-            .mapToInt(GameWeekPerformance::getPoints)
-            .sum();
-        
-        long gamesStarted = performances.stream()
-            .filter(p -> !p.isWasBenched())
-            .count();
-        
-        player.setTotalPointsForTeam(totalPoints);
-        player.setAvgPoints(gamesStarted > 0 ? (double) totalPoints / gamesStarted : 0);
-    }
-
-    private Map<Integer, List<Map<String, Object>>> getAllTeamPicksByGameWeek(int teamId) {
-        Map<Integer, List<Map<String, Object>>> allPicks = new HashMap<>();
-        for (int gw = 1; gw <= 38; gw++) {
-            try {
-                allPicks.put(gw, teamPicksService.getTeamPicks(teamId, gw));
-            } catch (Exception e) {
-                logger.info("{}, gameWeek {}",e.getMessage(), gw);
-                if(gw == 38) {
-                    break;
-                }
-            }
-        }
-        return allPicks;
-    }
+    /**
+     * Compares two FPL teams side by side, including shared players, differentials,
+     * and per-gameweek points for both teams.
+     *
+     * @param fplTeamId1 the FPL team/entry ID of the first team
+     * @param fplTeamId2 the FPL team/entry ID of the second team
+     * @return a {@link CompareDto} containing both team DTOs and the comparison data
+     * @throws TeamNotFoundException if either team does not exist in the database
+     */
+    CompareDto compareTeams(long fplTeamId1, long fplTeamId2);
 }
