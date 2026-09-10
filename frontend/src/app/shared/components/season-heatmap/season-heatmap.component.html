@@ -1,0 +1,31 @@
+<div class="heatmap-section">
+  <div class="heatmap-label">Season Heatmap · GW1–{{ totalGWs }}</div>
+  <div class="heatmap-row">
+    <div class="heatmap-item" *ngFor="let sq of row1; let i = index">
+      <div
+        class="heatmap-square"
+        [class.heatmap-square--benched]="sq.benched"
+        [class.heatmap-square--missed]="!sq.inTeam"
+        [style.background]="sq.color"
+        [title]="sq.tooltip">
+        <span class="sq-pts" *ngIf="sq.inTeam">{{ sq.points }}</span>
+      </div>
+      <span class="gw-label" *ngIf="shouldShowLabel(sq.gw)">GW{{ sq.gw }}</span>
+      <span class="gw-label-spacer" *ngIf="!shouldShowLabel(sq.gw)"></span>
+    </div>
+  </div>
+  <div class="heatmap-row" *ngIf="row2.length > 0">
+    <div class="heatmap-item" *ngFor="let sq of row2">
+      <div
+        class="heatmap-square"
+        [class.heatmap-square--benched]="sq.benched"
+        [class.heatmap-square--missed]="!sq.inTeam"
+        [style.background]="sq.color"
+        [title]="sq.tooltip">
+        <span class="sq-pts" *ngIf="sq.inTeam">{{ sq.points }}</span>
+      </div>
+      <span class="gw-label" *ngIf="shouldShowLabel(sq.gw)">GW{{ sq.gw }}</span>
+      <span class="gw-label-spacer" *ngIf="!shouldShowLabel(sq.gw)"></span>
+    </div>
+  </div>
+</div>
