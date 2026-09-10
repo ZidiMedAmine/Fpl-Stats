@@ -1,28 +1,32 @@
 import {NgModule} from '@angular/core';
 import {CommonModule} from '@angular/common';
+import {RouterModule} from '@angular/router';
 
 import {TeamPlayersRoutingModule} from './routing/team-players-routing.module';
-import {TeamPlayersComponent} from './playeer-list/team-players.component';
+import {TeamPlayersComponent} from './player-list/team-players.component';
 import {MatProgressSpinnerModule} from "@angular/material/progress-spinner";
 import {MatTableModule} from "@angular/material/table";
 import {MatToolbarModule} from "@angular/material/toolbar";
-import {PlayerImagePipe} from "../../core/pipes/player-image.pipe";
 import { PlayerDetailsComponent } from './player-details/player-details.component';
 import {MatIconModule} from "@angular/material/icon";
 import {MatButtonModule} from "@angular/material/button";
 import {MatDialogModule} from "@angular/material/dialog";
 import {MatTooltipModule} from "@angular/material/tooltip";
+import {MatSnackBarModule} from "@angular/material/snack-bar";
 import { PerformanceChartsComponent } from './performance-charts/performance-charts.component';
-import {NgChartsModule} from "ng2-charts";
+import {BaseChartDirective} from "ng2-charts";
+import {SharedModule} from "../../shared/shared.module";
+import {ComparePlayersModule} from "../compare-players/compare-players.module";
+import {CompareTeamsModule} from "../compare-teams/compare-teams.module";
 
 
 @NgModule({
   declarations: [
-    TeamPlayersComponent,PlayerImagePipe, PlayerDetailsComponent, PerformanceChartsComponent
+    TeamPlayersComponent, PlayerDetailsComponent, PerformanceChartsComponent
   ],
-  exports:[PlayerImagePipe],
   imports: [
     CommonModule,
+    RouterModule,
     MatTableModule,
     MatToolbarModule,
     MatProgressSpinnerModule,
@@ -31,7 +35,11 @@ import {NgChartsModule} from "ng2-charts";
     MatButtonModule,
     MatDialogModule,
     MatTooltipModule,
-    NgChartsModule,
+    MatSnackBarModule,
+    BaseChartDirective,
+    SharedModule,
+    ComparePlayersModule,
+    CompareTeamsModule,
   ]
 })
 export class TeamPlayersModule { }
