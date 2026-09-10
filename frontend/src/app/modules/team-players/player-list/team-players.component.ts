@@ -139,7 +139,6 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
    */
   private loadTeamPlayers(teamId: number): void {
     this.isLoading = true;
-    this.sharedService.displayPageLoader();
     this.teamService.syncUserTeam(teamId).pipe(
       switchMap(() => this.teamService.getTeamPlayers(teamId))
     ).subscribe({
@@ -151,12 +150,10 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
         this.sortPlayersByPosition();
         this.enrichPlayerStats();
         this.isLoading = false;
-        this.sharedService.removeLoader();
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.isLoading = false;
-        this.sharedService.removeLoader();
         this.cdr.markForCheck();
         const message = err?.status === 0
           ? 'Could not reach the server. Please try again later.'
