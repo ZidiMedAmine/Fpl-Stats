@@ -1,0 +1,207 @@
+<div class="compare-container">
+  <h1 class="page-title">Compare Teams</h1>
+  <p class="page-subtitle">Enter two FPL team IDs to compare squads, shared players, and points breakdown.</p>
+
+  <form (ngSubmit)="compare()" class="compare-form">
+    <div class="input-group" *ngIf="!isModal">
+      <label for="team1">Team 1 ID</label>
+      <input type="text" id="team1" name="team1" [(ngModel)]="teamId1" placeholder="e.g. 123456" required />
+    </div>
+    <div class="input-group">
+      <label for="team2">{{ isModal ? 'Opponent Team ID' : 'Team 2 ID' }}</label>
+      <input type="text" id="team2" name="team2" [(ngModel)]="teamId2" placeholder="e.g. 654321" required />
+    </div>
+    <button type="submit" [disabled]="isLoading" class="compare-btn" aria-label="Compare teams">
+      {{ isLoading ? 'Comparing…' : 'Compare' }}
+    </button>
+  </form>
+
+<div *ngIf="result" class="results">
+
+    <!-- Team Summary Cards + H2H -->
+    <div class="team-summary">
+      <div class="team-card team-card--1">
+        <h3 class="team-card-name">{{ result.team1.teamName }}</h3>
+        <p class="manager-name">{{ result.team1.name }}</p>
+        <div class="team-stats">
+          <span class="pts-value">{{ result.team1.totalPoints }}</span>
+          <span class="pts-label">pts</span>
+        </div>
+        <div class="rank-badge">Rank: {{ result.team1.overallRank | number }}</div>
+        <div class="rank-badge" *ngIf="result.team1.teamValue != null">£{{ result.team1.teamValue | number:'1.1-1' }}m</div>
+      </div>
+
+      <div class="vs-column">
+        <div class="vs-badge">VS</div>
+        <div class="pts-diff" [class.positive]="getTotalDiff() > 0" [class.negative]="getTotalDiff() < 0">
+          {{ getTotalDiff() > 0 ? '+' : '' }}{{ getTotalDiff() }} pts
+        </div>
+      </div>
+
+      <div class="team-card team-card--2">
+        <h3 class="team-card-name">{{ result.team2.teamName }}</h3>
+        <p class="manager-name">{{ result.team2.name }}</p>
+        <div class="team-stats">
+          <span class="pts-value">{{ result.team2.totalPoints }}</span>
+          <span class="pts-label">pts</span>
+        </div>
+        <div class="rank-badge">Rank: {{ result.team2.overallRank | number }}</div>
+        <div class="rank-badge" *ngIf="result.team2.teamValue != null">£{{ result.team2.teamValue | number:'1.1-1' }}m</div>
+      </div>
+    </div>
+
+    <!-- H2H Strip -->
+    <div class="h2h-strip" *ngIf="gameWeeks.length > 0">
+      <div class="h2h-item h2h-win">
+        <span class="h2h-num">{{ h2h.wins1 }}</span>
+        <span class="h2h-label">{{ result.team1.teamName }} wins</span>
+      </div>
+      <div class="h2h-item h2h-draw">
+        <span class="h2h-num">{{ h2h.draws }}</span>
+        <span class="h2h-label">Draws</span>
+      </div>
+      <div class="h2h-item h2h-win2">
+        <span class="h2h-num">{{ h2h.wins2 }}</span>
+        <span class="h2h-label">{{ result.team2.teamName }} wins</span>
+      </div>
+    </div>
+
+    <!-- Chart section -->
+    <div class="section" *ngIf="gameWeeks.length > 0">
+      <div class="chart-header">
+        <div class="chart-tabs">
+          <button class="chart-tab" [class.active]="activeChart === 'totalPoints'" (click)="activeChart = 'totalPoints'">Total Points</button>
+          <button class="chart-tab" [class.active]="activeChart === 'gw'" (click)="activeChart = 'gw'">GW Points</button>
+          <button class="chart-tab" [class.active]="activeChart === 'rank'" (click)="activeChart = 'rank'">Rank History</button>
+          <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="activeChart = 'teamValue'">Team Value</button>
+          <button class="chart-tab" [class.active]="activeChart === 'captain'" (click)="activeChart = 'captain'">Captain</button>
+        </div>
+        <div class="chart-legend">
+          <span class="legend-dot" style="background:#37003c"></span>
+          <span class="legend-name">{{ result.team1.teamName }}</span>
+          <span class="legend-dot" style="background:#00c3ff"></span>
+          <span class="legend-name">{{ result.team2.teamName }}</span>
+        </div>
+      </div>
+      <div class="chart-container">
+        <canvas *ngIf="activeChart === 'totalPoints'" baseChart [data]="totalPointsChart" [options]="totalPointsOptions" [type]="'line'"></canvas>
+        <canvas *ngIf="activeChart === 'gw'" baseChart [data]="gwLineChart" [options]="gwLineOptions" [type]="'line'"></canvas>
+        <canvas *ngIf="activeChart === 'rank'" baseChart [data]="rankChart" [options]="rankOptions" [type]="'line'"></canvas>
+        <canvas *ngIf="activeChart === 'teamValue'" baseChart [data]="teamValueChart" [options]="teamValueOptions" [type]="'line'"></canvas>
+        <canvas *ngIf="activeChart === 'captain'" baseChart [data]="captainChart" [options]="captainOptions" [type]="'bar'"></canvas>
+      </div>
+    </div>
+
+    <!-- Chip Usage -->
+    <div class="section" *ngIf="chipEvents1.length > 0 || chipEvents2.length > 0">
+      <h2 class="section-title">Chip Usage</h2>
+      <div class="chip-timeline">
+
+        <div class="chip-lane">
+          <div class="chip-lane-label" style="color:#37003c">{{ result.team1.teamName }}</div>
+          <div class="chip-lane-events">
+            <div class="chip-event" *ngFor="let chipEvent of chipEvents1; trackBy: trackByChipGameWeek">
+              <span class="chip-gw">GW{{ chipEvent.gameWeek }}</span>
+              <span class="chip-badge chip-badge--1">{{ chipLabels[chipEvent.chip] || chipEvent.chip }}</span>
+              <span class="chip-player" *ngIf="chipEvent.playerName">
+                {{ chipEvent.playerName }} · <strong>{{ chipEvent.playerPoints }} pts</strong>
+              </span>
+            </div>
+            <span class="chip-none" *ngIf="chipEvents1.length === 0">No chips used</span>
+          </div>
+        </div>
+
+        <div class="chip-lane">
+          <div class="chip-lane-label" style="color:#00c3ff">{{ result.team2.teamName }}</div>
+          <div class="chip-lane-events">
+            <div class="chip-event" *ngFor="let chipEvent of chipEvents2; trackBy: trackByChipGameWeek">
+              <span class="chip-gw">GW{{ chipEvent.gameWeek }}</span>
+              <span class="chip-badge chip-badge--2">{{ chipLabels[chipEvent.chip] || chipEvent.chip }}</span>
+              <span class="chip-player" *ngIf="chipEvent.playerName">
+                {{ chipEvent.playerName }} · <strong>{{ chipEvent.playerPoints }} pts</strong>
+              </span>
+            </div>
+            <span class="chip-none" *ngIf="chipEvents2.length === 0">No chips used</span>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- Last 5 GWs -->
+    <div class="section" *ngIf="lastFiveGWs().length > 0">
+      <h2 class="section-title">Last 5 Gameweeks</h2>
+      <div class="last5-table">
+        <div class="last5-row last5-header">
+          <span>GW</span>
+          <span>{{ result.team1.teamName }}</span>
+          <span>{{ result.team2.teamName }}</span>
+          <span>Result</span>
+        </div>
+        <div class="last5-row" *ngFor="let gameWeek of lastFiveGWs(); trackBy: trackByGameWeek">
+          <span class="gw-num">{{ gameWeek }}</span>
+          <span>{{ result.pointsByGameWeek[gameWeek][0] }}</span>
+          <span>{{ result.pointsByGameWeek[gameWeek][1] }}</span>
+          <span class="wld-badge" [class.badge-w]="gwResult(gameWeek) === 'W'" [class.badge-l]="gwResult(gameWeek) === 'L'" [class.badge-d]="gwResult(gameWeek) === 'D'">
+            {{ gwResult(gameWeek) }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Shared Players chips -->
+    <div class="section" *ngIf="result.sharedPlayers.length > 0">
+      <h2 class="section-title">Shared Players ({{ result.sharedPlayers.length }})</h2>
+      <div class="shared-chips">
+        <div class="shared-chip" *ngFor="let player of result.sharedPlayers; trackBy: trackByPlayerCode">
+          <img [appPlayerImage]="player.code" [alt]="player.name" class="chip-photo">
+          <div class="chip-body">
+            <app-position-badge [position]="player.position"></app-position-badge>
+            <span class="chip-name">{{ player.name }}</span>
+            <span class="chip-pts">{{ player.totalPointsForTeam }} pts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Differentials -->
+    <div class="differentials-grid">
+      <div class="section" *ngIf="result.team1Differentials.length > 0">
+        <h2 class="section-title">{{ result.team1.teamName }} Only ({{ result.team1Differentials.length }})</h2>
+        <div class="player-list">
+          <div class="player-list-item" *ngFor="let player of result.team1Differentials; trackBy: trackByPlayerCode">
+            <img [appPlayerImage]="player.code" [alt]="player.name" class="player-photo">
+            <div class="player-list-body">
+              <app-position-badge [position]="player.position"></app-position-badge>
+              <span class="player-list-name">{{ player.name }}</span>
+              <span class="player-list-team">{{ player.teamName }}</span>
+            </div>
+            <div class="player-list-pts">
+              <span class="pts-big">{{ player.totalPointsForTeam }}</span>
+              <span class="pts-avg">{{ player.avgPoints | number:'1.1-1' }} avg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="section" *ngIf="result.team2Differentials.length > 0">
+        <h2 class="section-title">{{ result.team2.teamName }} Only ({{ result.team2Differentials.length }})</h2>
+        <div class="player-list">
+          <div class="player-list-item" *ngFor="let player of result.team2Differentials; trackBy: trackByPlayerCode">
+            <img [appPlayerImage]="player.code" [alt]="player.name" class="player-photo">
+            <div class="player-list-body">
+              <app-position-badge [position]="player.position"></app-position-badge>
+              <span class="player-list-name">{{ player.name }}</span>
+              <span class="player-list-team">{{ player.teamName }}</span>
+            </div>
+            <div class="player-list-pts">
+              <span class="pts-big">{{ player.totalPointsForTeam }}</span>
+              <span class="pts-avg">{{ player.avgPoints | number:'1.1-1' }} avg</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
