@@ -1,0 +1,223 @@
+<h2 mat-dialog-title class="compare-dialog-title">
+  <span>Compare Players</span>
+  <button mat-icon-button mat-dialog-close aria-label="Close">
+    <mat-icon>close</mat-icon>
+  </button>
+</h2>
+
+<div mat-dialog-content class="compare-page">
+
+  <!-- SECTION 1: PLAYER SELECTOR -->
+  <div class="selector-card">
+    <!-- Player A (pre-filled) -->
+    <div class="player-slot filled" *ngIf="playerA; else emptyA">
+      <img [appPlayerImage]="playerA.code" [alt]="playerA.webName" class="player-photo">
+      <div class="player-info">
+        <div class="player-name">{{ playerA.webName }}</div>
+        <div class="player-meta">{{ playerA.position }} · {{ playerA.teamName }} · {{ price(playerA) }}</div>
+        <span class="from-team-badge">From your team</span>
+      </div>
+    </div>
+    <ng-template #emptyA>
+      <div class="player-slot empty">
+        <mat-spinner diameter="32" *ngIf="loading"></mat-spinner>
+        <span *ngIf="!loading">No player selected</span>
+      </div>
+    </ng-template>
+
+    <div class="vs-badge">VS</div>
+
+    <!-- Player B (search) -->
+    <div class="player-slot search-slot" [class.is-filled]="playerB && !searchResults.length">
+      <div class="filled" *ngIf="playerB && !searchResults.length">
+        <img [appPlayerImage]="playerB.code" [alt]="playerB.webName" class="player-photo">
+        <div class="player-info">
+          <div class="player-name player-name--b">{{ playerB.webName }}</div>
+          <div class="player-meta">{{ playerB.position }} · {{ playerB.teamName }} · {{ price(playerB) }}</div>
+          <button mat-button class="change-btn" (click)="playerB = null; searchQuery = ''">Change</button>
+        </div>
+      </div>
+      <div *ngIf="!playerB || searchResults.length" class="search-input-wrapper">
+        <input
+          class="search-input"
+          type="text"
+          [(ngModel)]="searchQuery"
+          (input)="onSearch()"
+          [placeholder]="playerA ? 'Search ' + playerA.position + ' players...' : 'Select your player first'"
+          [disabled]="!playerA"
+          aria-label="Search comparison player"
+        />
+        <div class="search-results" *ngIf="searchResults.length">
+          <div
+            class="search-result-item"
+            *ngFor="let playerSummary of searchResults | slice:0:8; trackBy: trackByPlayerFplId"
+            (click)="selectPlayerB(playerSummary)"
+            role="button"
+            [attr.aria-label]="'Select ' + playerSummary.webName"
+          >
+            <img [appPlayerImage]="playerSummary.code" [alt]="playerSummary.webName" class="result-photo">
+            <div class="result-body">
+              <span class="result-name">{{ playerSummary.webName }}</span>
+              <span class="result-meta">{{ playerSummary.teamName }} · {{ playerSummary.totalPoints }} pts · £{{ playerSummary.nowCost | number:'1.1-1' }}m</span>
+            </div>
+          </div>
+        </div>
+        <div class="search-hint" *ngIf="playerA && !searchResults.length && searchQuery.length < 2">
+          Type to search {{ playerA.position }} players
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <ng-container *ngIf="playerA && playerB">
+
+    <!-- VERDICT BANNER -->
+    <div class="verdict-row" aria-live="polite">
+      <div class="verdict-banner" [class.verdict-win]="playerAWins()" [class.verdict-loss]="!playerAWins() && !isEvenPoints()" [class.verdict-draw]="isEvenPoints()">
+        <mat-icon>insights</mat-icon>
+        <span>{{ verdictPoints() }}</span>
+      </div>
+      <div class="verdict-banner" [class.verdict-win]="playerAWins()" [class.verdict-loss]="!playerAWins() && !isEvenPoints()" [class.verdict-draw]="isEvenPoints()">
+        <mat-icon>insights</mat-icon>
+        <span>{{ verdictValue() }}</span>
+      </div>
+    </div>
+
+    <!-- SECTION 2: STATS GRID -->
+    <div class="stats-card">
+      <div class="stats-section-title">Season Stats</div>
+
+      <div class="stats-header">
+        <span class="name-a">{{ playerA.webName }}</span>
+        <span></span>
+        <span class="name-b">{{ playerB.webName }}</span>
+      </div>
+
+      <!-- Overview -->
+      <div class="stat-group-label">Overview</div>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Total pts', a: playerA.totalPoints, b: playerB.totalPoints }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Avg pts/GW', a: playerA.avgPoints | number:'1.1-1', b: playerB.avgPoints | number:'1.1-1', aRaw: playerA.avgPoints, bRaw: playerB.avgPoints }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Price', a: price(playerA), b: price(playerB), aRaw: playerA.nowCost, bRaw: playerB.nowCost, lowerBetter: true }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Pts / £m', a: ptsPerMillion(playerA), b: ptsPerMillion(playerB) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Ownership %', a: playerA.selectedByPercent + '%', b: playerB.selectedByPercent + '%', aRaw: playerA.selectedByPercent, bRaw: playerB.selectedByPercent }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Minutes', a: totalMinutes(playerA.performances), b: totalMinutes(playerB.performances) }"></ng-container>
+
+      <!-- Attacking -->
+      <div class="stat-group-label">Attacking</div>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Goals', a: totalGoals(playerA.performances), b: totalGoals(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Assists', a: totalAssists(playerA.performances), b: totalAssists(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Bonus pts', a: totalBonus(playerA.performances), b: totalBonus(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'xG', a: totalXg(playerA.performances), b: totalXg(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'xA', a: totalXa(playerA.performances), b: totalXa(playerB.performances) }"></ng-container>
+
+      <!-- Defensive -->
+      <ng-container *ngIf="isDefOrMid()">
+        <div class="stat-group-label">Defensive</div>
+        <ng-container *ngTemplateOutlet="statRow; context: { label: 'DC', a: totalDefensiveContribution(playerA.performances), b: totalDefensiveContribution(playerB.performances) }"></ng-container>
+        <ng-container *ngTemplateOutlet="statRow; context: { label: 'Clean Sheets', a: totalCleanSheets(playerA.performances), b: totalCleanSheets(playerB.performances) }"></ng-container>
+        <ng-container *ngTemplateOutlet="statRow; context: { label: 'Goals Conceded', a: totalGoalsConceded(playerA.performances), b: totalGoalsConceded(playerB.performances), lowerBetter: true }"></ng-container>
+      </ng-container>
+
+      <!-- FPL Metrics -->
+      <div class="stat-group-label">FPL Performance</div>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Haul GWs (10+)', a: haulGWs(playerA.performances), b: haulGWs(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Blank GWs (≤1)', a: blankGWs(playerA.performances), b: blankGWs(playerB.performances), lowerBetter: true }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Consistency %', a: consistency(playerA.performances) + '%', b: consistency(playerB.performances) + '%', aRaw: consistency(playerA.performances), bRaw: consistency(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Best GW pts', a: bestGW(playerA.performances), b: bestGW(playerB.performances) }"></ng-container>
+      <ng-container *ngTemplateOutlet="statRow; context: { label: 'Form (last 5)', a: form(playerA.performances), b: form(playerB.performances) }"></ng-container>
+    </div>
+
+    <!-- SECTION 3: CHARTS -->
+    <div class="charts-grid">
+      <div class="chart-card">
+        <div class="chart-title">Points per Gameweek</div>
+        <canvas baseChart
+          [data]="lineChartData"
+          [options]="lineChartOptions"
+          type="line"
+          aria-label="Points per gameweek line chart">
+        </canvas>
+      </div>
+      <div class="chart-card chart-card--radar">
+        <div class="chart-title">Season Shape</div>
+
+        <!-- Stat selector -->
+        <div class="stat-selector">
+          <div class="selected-chips-label">Selected stats</div>
+          <div class="selected-chips">
+            <span class="stat-chip" *ngFor="let stat of selectedStats; trackBy: trackByStatKey">
+              {{ stat.label }}
+              <button
+                class="chip-remove"
+                (click)="removeStat(stat)"
+                [disabled]="selectedStats.length <= 3"
+                [attr.aria-label]="'Remove ' + stat.label">×</button>
+            </span>
+          </div>
+
+          <div class="stat-browse-wrapper">
+            <button class="browse-link" (click)="toggleDropdown($event)">
+              Browse all {{ allStats.length }} stats ▾
+            </button>
+
+            <div class="stat-dropdown" *ngIf="showStatDropdown" (click)="$event.stopPropagation()">
+              <input
+                class="stat-search-input"
+                type="text"
+                [(ngModel)]="statSearchQuery"
+                placeholder="Search stats..."
+                aria-label="Search stats"
+                autocomplete="off"
+              />
+              <div class="stat-dropdown-body">
+                <ng-container *ngFor="let group of statsByCategory(); trackBy: trackByGroupCategory">
+                  <div class="stat-category-label">{{ group.category }}</div>
+                  <div
+                    class="stat-item"
+                    *ngFor="let stat of group.stats; trackBy: trackByStatKey"
+                    [class.stat-item--selected]="isSelected(stat)"
+                    [class.stat-item--disabled]="!isSelected(stat) && selectedStats.length >= 10"
+                    (click)="addStat(stat)"
+                    role="button"
+                    [attr.aria-label]="'Add ' + stat.label"
+                  >
+                    {{ stat.label }}
+                    <span class="stat-item-check" *ngIf="isSelected(stat)">✓</span>
+                  </div>
+                </ng-container>
+                <div class="stat-no-results" *ngIf="statsByCategory().length === 0">
+                  No stats match "{{ statSearchQuery }}"
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="radar-canvas-wrapper">
+          <canvas baseChart
+            [data]="radarChartData"
+            [options]="radarChartOptions"
+            type="radar"
+            aria-label="Season shape radar chart">
+          </canvas>
+        </div>
+      </div>
+    </div>
+
+  </ng-container>
+
+  <!-- Loading overlay -->
+  <div class="loading-overlay" *ngIf="loading && !playerA">
+    <mat-spinner diameter="48"></mat-spinner>
+  </div>
+
+</div>
+
+<!-- Reusable stat row template -->
+<ng-template #statRow let-label="label" let-a="a" let-b="b" let-aRaw="aRaw" let-bRaw="bRaw" let-lowerBetter="lowerBetter">
+  <div class="stat-row">
+    <div class="stat-val" [class.winner]="wins(aRaw ?? a, bRaw ?? b, lowerBetter) === 'a'">{{ a }}</div>
+    <div class="stat-label">{{ label }}</div>
+    <div class="stat-val stat-val--b" [class.winner]="wins(aRaw ?? a, bRaw ?? b, lowerBetter) === 'b'">{{ b }}</div>
+  </div>
+</ng-template>
