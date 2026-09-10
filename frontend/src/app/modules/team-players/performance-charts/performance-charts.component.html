@@ -1,26 +1,215 @@
-<div *ngIf="activeChart === 'total'" class="chart-container">
-  <h3>Total GameWeek Points</h3>
-  <canvas baseChart
-          [data]="totalPointsChart"
-          [options]="chartOptions"
-          [type]="'line'">
-  </canvas>
+<!-- Insight cards -->
+<div class="insights-row">
+
+  <div class="insight-card" *ngIf="topCaptain">
+    <div class="insight-icon-wrap captain-icon">
+      <img [appPlayerImage]="topCaptainPhoto" [alt]="topCaptain" class="captain-avatar">
+    </div>
+    <div class="insight-body">
+      <div class="insight-value">{{ topCaptain }}</div>
+      <div class="insight-label">Most Captained · {{ topCaptainCount }}x</div>
+    </div>
+  </div>
+
+  <div class="insight-card">
+    <div class="insight-icon-wrap bench-icon">
+      <mat-icon>trending_down</mat-icon>
+    </div>
+    <div class="insight-body">
+      <div class="insight-value">{{ totalBenchWasted }} pts</div>
+      <div class="insight-label">Lost to bench · {{ benchWastedWeeks }} weeks</div>
+    </div>
+  </div>
+
+  <div class="insight-card" *ngIf="bestGWScore > 0">
+    <div class="insight-icon-wrap bestgw-icon">
+      <mat-icon>star</mat-icon>
+    </div>
+    <div class="insight-body">
+      <div class="insight-value">{{ bestGWScore }} pts</div>
+      <div class="insight-label">Best gameweek · GW{{ bestGWNumber }}</div>
+    </div>
+  </div>
+
+  <div class="insight-card" *ngIf="teamValue != null">
+    <div class="insight-icon-wrap value-icon">
+      <mat-icon>paid</mat-icon>
+    </div>
+    <div class="insight-body">
+      <div class="insight-value">£{{ teamValue | number:'1.1-1' }}m</div>
+      <div class="insight-label">Team value</div>
+    </div>
+  </div>
+
 </div>
 
-<div *ngIf="activeChart === 'captain'" class="chart-container">
-  <h3>Captain Points</h3>
-  <canvas baseChart
-          [data]="captainPointsChart"
-          [options]="chartOptions"
-          [type]="'line'">
-  </canvas>
-</div>
+<!-- Performance Card -->
+<div class="performance-card">
+  <div class="performance-header">
+    <span class="performance-title">PERFORMANCE</span>
+    <div class="chart-tabs" role="group" aria-label="Chart type selection">
+      <button class="chart-tab" [class.active]="activeChart === 'total'" (click)="showChart('total')">Total GW Points</button>
+      <button class="chart-tab" [class.active]="activeChart === 'rank'" (click)="showChart('rank')">Rank History</button>
+      <button class="chart-tab" [class.active]="activeChart === 'captain'" (click)="showChart('captain')">Captain</button>
+      <button class="chart-tab" [class.active]="activeChart === 'bench'" (click)="showChart('bench')">Bench</button>
+      <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="showChart('teamValue')">Team Value</button>
+      <button class="chart-tab" [class.active]="activeChart === 'weekly'" (click)="showChart('weekly')">Weekly Stats</button>
+      <button class="chart-tab" [class.active]="activeChart === 'position'" (click)="showChart('position')">By Position</button>
+    </div>
+  </div>
 
-<div *ngIf="activeChart === 'bench'" class="chart-container">
-  <h3>Bench Points</h3>
-  <canvas baseChart
-          [data]="benchPointsChart"
-          [options]="chartOptions"
-          [type]="'line'">
-  </canvas>
+  <div *ngIf="activeChart === 'total'">
+    <div class="doughnut-title">Total GW Points</div>
+    <div class="chart-container">
+      <canvas baseChart [data]="totalPointsChart" [options]="lineOptions" [type]="'line'"></canvas>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'rank'" class="bench-section">
+    <div class="weekly-summary-row">
+      <div class="weekly-toggle-wrap">
+        <button class="chart-tab" [class.active]="rankMode === 'overall'" (click)="rankMode !== 'overall' && toggleRankMode()">Overall Rank</button>
+        <button class="chart-tab" [class.active]="rankMode === 'gw'" (click)="rankMode !== 'gw' && toggleRankMode()">Per GW</button>
+      </div>
+    </div>
+    <div class="doughnut-title">{{ rankMode === 'overall' ? 'Overall Rank History' : 'GW Rank per Gameweek' }}</div>
+    <div class="chart-container">
+      <canvas *ngIf="rankMode === 'overall'" baseChart [data]="rankHistoryChart" [options]="rankHistoryOptions" [type]="'line'"></canvas>
+      <canvas *ngIf="rankMode === 'gw'" baseChart [data]="gwRankChart" [options]="gwRankOptions" [type]="'line'"></canvas>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'captain'">
+    <div class="doughnut-title">Captain Points</div>
+    <div class="chart-container">
+      <canvas baseChart [data]="captainPointsChart" [options]="singleLineOptions" [type]="'line'"></canvas>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'teamValue'">
+    <div class="doughnut-title">Team Value Over Time</div>
+    <div class="chart-container">
+      <canvas baseChart [data]="teamValueChart" [options]="teamValueOptions" [type]="'line'"></canvas>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'bench'" class="bench-section">
+    <div class="weekly-summary-row">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ totalBenchPoints }}</span>
+        <span class="weekly-stat-label">Total Bench Pts</span>
+      </div>
+      <div class="weekly-toggle-wrap">
+        <button class="chart-tab" [class.active]="benchMode === 'gw'" (click)="benchMode !== 'gw' && toggleBenchMode()">Per GW</button>
+        <button class="chart-tab" [class.active]="benchMode === 'cumulative'" (click)="benchMode !== 'cumulative' && toggleBenchMode()">Cumulative</button>
+      </div>
+    </div>
+    <div class="doughnut-title">Bench Points</div>
+    <div class="chart-container">
+      <canvas baseChart #benchLineChart [data]="benchPointsChart" [options]="singleLineOptions" [type]="'line'"></canvas>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'weekly'" class="weekly-section">
+
+    <!-- Season summary + mode toggle -->
+    <div class="weekly-summary-row">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ weeklySeasonSummary.total }}</span>
+        <span class="weekly-stat-label">Season Pts</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ weeklySeasonSummary.avgPerGW }}</span>
+        <span class="weekly-stat-label">Avg / GW</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ weeklySeasonSummary.bestGW }}</span>
+        <span class="weekly-stat-label">Best · GW{{ weeklySeasonSummary.bestGWNum }}</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ weeklySeasonSummary.worstGW }}</span>
+        <span class="weekly-stat-label">Worst · GW{{ weeklySeasonSummary.worstGWNum }}</span>
+      </div>
+      <div class="weekly-toggle-wrap">
+        <button class="chart-tab" [class.active]="weeklyMode === 'gw'" (click)="weeklyMode !== 'gw' && toggleWeeklyMode()">Per GW</button>
+        <button class="chart-tab" [class.active]="weeklyMode === 'cumulative'" (click)="weeklyMode !== 'cumulative' && toggleWeeklyMode()">Cumulative</button>
+      </div>
+    </div>
+
+    <div class="doughnut-title">Weekly Points Breakdown</div>
+    <div class="chart-container">
+      <canvas baseChart #weeklyBarChart [data]="weeklyOverviewChart" [options]="weeklyBarOptions" [type]="'bar'"></canvas>
+    </div>
+
+    <!-- Hover detail panel -->
+    <div class="weekly-detail-panel" *ngIf="weeklyHoveredGW; else hoverHint">
+      <span class="weekly-detail-gw">GW{{ weeklyHoveredGW.gw }}</span>
+      <div class="weekly-detail-bars">
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Goals</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.goals / weeklyHoveredGW.total) * 100 : 0" style="background:#639922"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.goalCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.goals }} pts</span>
+        </div>
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Assists</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.assists / weeklyHoveredGW.total) * 100 : 0" style="background:#378ADD"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.assistCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.assists }} pts</span>
+        </div>
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Clean Sheets</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.cleanSheets / weeklyHoveredGW.total) * 100 : 0" style="background:#7F77DD"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.cleanSheetCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.cleanSheets }} pts</span>
+        </div>
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Bonus</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.bonus / weeklyHoveredGW.total) * 100 : 0" style="background:#EF9F27"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.bonusCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.bonus }} pts</span>
+        </div>
+      </div>
+      <div class="detail-total">Total: {{ weeklyHoveredGW.total }} pts</div>
+    </div>
+    <ng-template #hoverHint>
+      <div class="weekly-detail-placeholder">Hover over a bar to see the breakdown</div>
+    </ng-template>
+
+  </div>
+
+  <div *ngIf="activeChart === 'position'">
+    <div class="weekly-summary-row">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ positionSummary.pointsPerMillion | number:'1.1-1' }}</span>
+        <span class="weekly-stat-label">pts/£m spent</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">£{{ positionSummary.averagePlayerValue | number:'1.2-2' }}m</span>
+        <span class="weekly-stat-label">Avg player value</span>
+      </div>
+    </div>
+    <div class="doughnut-row">
+      <div class="doughnut-card">
+        <div class="doughnut-title">Points by Position</div>
+        <canvas baseChart [data]="pointsByPositionChart" [options]="pointsByPositionOptions" [type]="'doughnut'"></canvas>
+      </div>
+      <div class="doughnut-card">
+        <div class="doughnut-title">Investment by Position</div>
+        <canvas baseChart [data]="investmentByPositionChart" [options]="investmentByPositionOptions" [type]="'doughnut'"></canvas>
+      </div>
+      <div class="doughnut-card">
+        <div class="doughnut-title">Efficiency by Position</div>
+        <canvas baseChart [data]="efficiencyByPositionChart" [options]="efficiencyByPositionOptions" [type]="'polarArea'"></canvas>
+      </div>
+    </div>
+  </div>
 </div>
