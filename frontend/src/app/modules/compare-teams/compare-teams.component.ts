@@ -56,7 +56,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
       tooltip: { mode: 'index', intersect: false },
       datalabels: { display: false }
     },
@@ -69,7 +69,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: { mode: 'index', intersect: false }
     },
@@ -82,7 +82,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: {
         mode: 'index',
@@ -106,7 +106,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: {
         mode: 'index',
@@ -127,7 +127,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: false },
+      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
       datalabels: {
         display: true,
         anchor: 'center',
@@ -342,7 +342,7 @@ export class CompareTeamsComponent {
           pointBackgroundColor: CHART_COLORS.primary,
           tension: 0.3,
           fill: true,
-          pointRadius: 3,
+          pointRadius: 5,
         },
         {
           label: user2.teamName,
@@ -353,7 +353,7 @@ export class CompareTeamsComponent {
           borderDash: [6, 4],
           tension: 0.3,
           fill: true,
-          pointRadius: 3,
+          pointRadius: 5,
         }
       ]
     };
@@ -376,7 +376,7 @@ export class CompareTeamsComponent {
           pointBackgroundColor: CHART_COLORS.primary,
           tension: 0.3,
           fill: true,
-          pointRadius: 4,
+          pointRadius: 5,
         },
         {
           label: this.result.team2.teamName,
@@ -386,7 +386,7 @@ export class CompareTeamsComponent {
           pointBackgroundColor: CHART_COLORS.team2,
           borderDash: [6, 4],
           tension: 0.3,
-          pointRadius: 4,
+          pointRadius: 5,
           fill: true,
         }
       ]
@@ -415,7 +415,7 @@ export class CompareTeamsComponent {
           pointBackgroundColor: CHART_COLORS.primary,
           tension: 0.3,
           fill: 'start',
-          pointRadius: 3,
+          pointRadius: 5,
         },
         {
           label: user2.teamName,
@@ -426,7 +426,7 @@ export class CompareTeamsComponent {
           borderDash: [6, 4],
           tension: 0.3,
           fill: 'start',
-          pointRadius: 3,
+          pointRadius: 5,
         }
       ]
     };
@@ -454,7 +454,7 @@ export class CompareTeamsComponent {
           pointBackgroundColor: CHART_COLORS.primary,
           tension: 0.3,
           fill: true,
-          pointRadius: 3,
+          pointRadius: 5,
         },
         {
           label: user2.teamName,
@@ -465,7 +465,7 @@ export class CompareTeamsComponent {
           borderDash: [6, 4],
           tension: 0.3,
           fill: true,
-          pointRadius: 3,
+          pointRadius: 5,
         }
       ]
     };

@@ -148,7 +148,7 @@
         <div class="detail-bar-row">
           <span class="detail-bar-label">Goals</span>
           <div class="detail-bar-track">
-            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.goals / weeklyHoveredGW.total) * 100 : 0" style="background:#639922"></div>
+            <div class="detail-bar-fill detail-bar-fill--goals" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.goals / weeklyHoveredGW.total) * 100 : 0"></div>
             <span class="detail-bar-inner">{{ weeklyHoveredGW.goalCount }}</span>
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.goals }} pts</span>
@@ -156,7 +156,7 @@
         <div class="detail-bar-row">
           <span class="detail-bar-label">Assists</span>
           <div class="detail-bar-track">
-            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.assists / weeklyHoveredGW.total) * 100 : 0" style="background:#378ADD"></div>
+            <div class="detail-bar-fill detail-bar-fill--assists" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.assists / weeklyHoveredGW.total) * 100 : 0"></div>
             <span class="detail-bar-inner">{{ weeklyHoveredGW.assistCount }}</span>
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.assists }} pts</span>
@@ -164,7 +164,7 @@
         <div class="detail-bar-row">
           <span class="detail-bar-label">Clean Sheets</span>
           <div class="detail-bar-track">
-            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.cleanSheets / weeklyHoveredGW.total) * 100 : 0" style="background:#7F77DD"></div>
+            <div class="detail-bar-fill detail-bar-fill--clean-sheets" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.cleanSheets / weeklyHoveredGW.total) * 100 : 0"></div>
             <span class="detail-bar-inner">{{ weeklyHoveredGW.cleanSheetCount }}</span>
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.cleanSheets }} pts</span>
@@ -172,7 +172,7 @@
         <div class="detail-bar-row">
           <span class="detail-bar-label">Bonus</span>
           <div class="detail-bar-track">
-            <div class="detail-bar-fill" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.bonus / weeklyHoveredGW.total) * 100 : 0" style="background:#EF9F27"></div>
+            <div class="detail-bar-fill detail-bar-fill--bonus" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.bonus / weeklyHoveredGW.total) * 100 : 0"></div>
             <span class="detail-bar-inner">{{ weeklyHoveredGW.bonusCount }}</span>
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.bonus }} pts</span>

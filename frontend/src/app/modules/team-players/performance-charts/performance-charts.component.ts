@@ -523,7 +523,7 @@ export class PerformanceChartsComponent implements OnChanges {
           backgroundColor: CHART_COLORS.primaryAlpha07,
           pointBackgroundColor: CHART_COLORS.primary,
           fill: false,
-          pointRadius: 4,
+          pointRadius: 5,
           tension: 0.3
         },
         {
@@ -533,7 +533,7 @@ export class PerformanceChartsComponent implements OnChanges {
           backgroundColor: CHART_COLORS.goldAlpha07,
           pointBackgroundColor: CHART_COLORS.gold,
           fill: false,
-          pointRadius: 4,
+          pointRadius: 5,
           tension: 0.3,
           borderDash: [2, 2]
         }
@@ -626,7 +626,8 @@ export class PerformanceChartsComponent implements OnChanges {
           label: 'Captain Points',
           fill: true,
           pointRadius: 5,
-          tension: 0.3
+          tension: 0.3,
+
         }
       ]
     };
