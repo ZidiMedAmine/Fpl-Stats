@@ -68,14 +68,11 @@ public class UserPickSyncService {
      * @param userTeam the user team whose picks should be synced
      */
     public void syncUserPicks(UserTeam userTeam) {
-        int startGw = userTeam.getLastSyncedGameWeek() + 1;
-        if (userTeam.getStartedEvent() != null) {
-            startGw = Math.max(startGw, userTeam.getStartedEvent());
-        }
-
+        int startGw = resolveStartGw(userTeam);
         int lastCompleted = fixtureDataService.getLastCompletedGameWeek();
+
         if (startGw > lastCompleted) {
-            log.info("No new gameweeks to sync for team {}", userTeam.getFplTeamId());
+            log.info("No new gameWeeks to sync for team {}", userTeam.getFplTeamId());
             if (lastCompleted > 0) {
                 userTeam.setLastSyncedGameWeek(lastCompleted);
                 userTeamRepository.save(userTeam);
@@ -87,31 +84,7 @@ public class UserPickSyncService {
                 userTeam.getFplTeamId(), startGw, lastCompleted);
 
         Optional<Integer> tripleCaptainWeek = getTripleCaptainWeek(userTeam.getFplTeamId());
-
-        List<UserPick> allPicks = new ArrayList<>();
-
-        for (int gw = startGw; gw <= lastCompleted; gw++) {
-            try {
-                List<Map<String, Object>> picksData = fetchTeamPicks(userTeam.getFplTeamId(), gw);
-                if (picksData == null) continue;
-
-                GameWeek gameWeek = gameWeekRepository.findByGameWeekNumber(gw).orElse(null);
-                if (gameWeek == null) continue;
-
-                boolean isTripleCaptainGw = tripleCaptainWeek.isPresent()
-                        && tripleCaptainWeek.get() == gw;
-
-                for (Map<String, Object> pickData : picksData) {
-                    UserPick pick = createUserPick(userTeam, gameWeek, pickData, isTripleCaptainGw);
-                    if (pick != null) {
-                        allPicks.add(pick);
-                    }
-                }
-            } catch (Exception e) {
-                log.error("Failed to sync picks for team {} GW{}",
-                        userTeam.getFplTeamId(), gw, e);
-            }
-        }
+        List<UserPick> allPicks = collectPicksForRange(userTeam, startGw, lastCompleted, tripleCaptainWeek);
 
         if (!allPicks.isEmpty()) {
             userPickRepository.saveAll(allPicks);
@@ -120,6 +93,55 @@ public class UserPickSyncService {
         userTeam.setLastSyncedGameWeek(lastCompleted);
         userTeamRepository.save(userTeam);
         log.info("Synced {} picks for team {}", allPicks.size(), userTeam.getFplTeamId());
+    }
+
+    /**
+     * Returns the first gameweek to sync for the given team.
+     * Always starts at least from {@code lastSyncedGameWeek + 1},
+     * and never before the team's own started event.
+     *
+     * @param userTeam the user team
+     * @return the gameweek number to start syncing from
+     */
+    private int resolveStartGw(UserTeam userTeam) {
+        int startGw = userTeam.getLastSyncedGameWeek() + 1;
+        if (userTeam.getStartedEvent() != null) {
+            startGw = Math.max(startGw, userTeam.getStartedEvent());
+        }
+        return startGw;
+    }
+
+    /**
+     * Collects all picks for gameweeks in the range [{@code startGw}, {@code lastCompleted}].
+     * Skips a gameweek silently if the API call fails or the gameweek is not found in the database.
+     *
+     * @param userTeam           the user team whose picks are being fetched
+     * @param startGw            the first gameweek to fetch (inclusive)
+     * @param lastCompleted      the last gameweek to fetch (inclusive)
+     * @param tripleCaptainWeek  the GW in which the triple captain chip was played, if any
+     * @return flat list of all picks collected across the range
+     */
+    private List<UserPick> collectPicksForRange(UserTeam userTeam, int startGw, int lastCompleted,
+                                                Optional<Integer> tripleCaptainWeek) {
+        List<UserPick> allPicks = new ArrayList<>();
+        for (int gw = startGw; gw <= lastCompleted; gw++) {
+            try {
+                List<Map<String, Object>> picksData = fetchTeamPicks(userTeam.getFplTeamId(), gw);
+                if (picksData == null) continue;
+
+                GameWeek gameWeek = gameWeekRepository.findByGameWeekNumber(gw).orElse(null);
+                if (gameWeek == null) continue;
+
+                boolean isTripleCaptainGw = tripleCaptainWeek.isPresent() && tripleCaptainWeek.get() == gw;
+                for (Map<String, Object> pickData : picksData) {
+                    UserPick pick = createUserPick(userTeam, gameWeek, pickData, isTripleCaptainGw);
+                    if (pick != null) allPicks.add(pick);
+                }
+            } catch (Exception e) {
+                log.error("Failed to sync picks for team {} GW{}", userTeam.getFplTeamId(), gw, e);
+            }
+        }
+        return allPicks;
     }
 
     /**

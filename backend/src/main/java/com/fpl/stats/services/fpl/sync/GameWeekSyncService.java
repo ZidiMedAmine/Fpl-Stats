@@ -102,7 +102,7 @@ public class GameWeekSyncService {
         int gwNumber = ((Number) gwData.get("id")).intValue();
         gameWeek.setGameWeekNumber(gwNumber);
         gameWeek.setName((String) gwData.get("name"));
-        gameWeek.setCurrent(gwNumber == currentGwNumber);
+        gameWeek.setIsCurrent(gwNumber == currentGwNumber);
         gameWeek.setNext(gwNumber == currentGwNumber + 1);
         gameWeek.setPrevious(gwNumber == currentGwNumber - 1);
         gameWeek.setFinished(completedGwNumbers.contains(gwNumber));

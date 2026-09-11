@@ -3,10 +3,10 @@ package com.fpl.stats.services.impl;
 import com.fpl.stats.domain.Player;
 import com.fpl.stats.domain.TrackedTeam;
 import com.fpl.stats.domain.UserTeam;
-import com.fpl.stats.repository.GameWeekRepository;
 import com.fpl.stats.repository.TrackedTeamRepository;
 import com.fpl.stats.repository.UserPickRepository;
 import com.fpl.stats.repository.UserTeamRepository;
+import com.fpl.stats.services.fpl.FixtureDataService;
 import com.fpl.stats.services.fpl.sync.PlayerHistorySyncService;
 import com.fpl.stats.services.fpl.sync.UserPickSyncService;
 import com.fpl.stats.services.fpl.sync.UserSyncService;
@@ -33,7 +33,7 @@ public class UserSyncServiceImpl implements UserSyncService {
     private final PlayerHistorySyncService playerHistorySyncService;
     private final TrackedTeamRepository trackedTeamRepository;
     private final UserTeamRepository userTeamRepository;
-    private final GameWeekRepository gameWeekRepository;
+    private final FixtureDataService fixtureDataService;
     private final UserTeamSyncService userTeamSyncService;
     private final UserPickSyncService userPickSyncService;
     private final UserPickRepository userPickRepository;
@@ -44,7 +44,7 @@ public class UserSyncServiceImpl implements UserSyncService {
      * @param playerHistorySyncService syncs per-player gameweek history
      * @param trackedTeamRepository   persists tracked team records
      * @param userTeamRepository      used to check the team's last synced gameweek
-     * @param gameWeekRepository      used to fetch the current gameweek
+     * @param fixtureDataService      used to determine the last completed gameweek
      * @param userTeamSyncService     syncs user team metadata and rank history
      * @param userPickSyncService     syncs gameweek picks for a user team
      * @param userPickRepository      used to retrieve players picked by a team
@@ -52,14 +52,14 @@ public class UserSyncServiceImpl implements UserSyncService {
     public UserSyncServiceImpl(PlayerHistorySyncService playerHistorySyncService,
                                TrackedTeamRepository trackedTeamRepository,
                                UserTeamRepository userTeamRepository,
-                               GameWeekRepository gameWeekRepository,
+                               FixtureDataService fixtureDataService,
                                UserTeamSyncService userTeamSyncService,
                                UserPickSyncService userPickSyncService,
                                UserPickRepository userPickRepository) {
         this.playerHistorySyncService = playerHistorySyncService;
         this.trackedTeamRepository = trackedTeamRepository;
         this.userTeamRepository = userTeamRepository;
-        this.gameWeekRepository = gameWeekRepository;
+        this.fixtureDataService = fixtureDataService;
         this.userTeamSyncService = userTeamSyncService;
         this.userPickSyncService = userPickSyncService;
         this.userPickRepository = userPickRepository;
@@ -72,10 +72,10 @@ public class UserSyncServiceImpl implements UserSyncService {
     public void syncUser(long fplTeamId) {
         TrackedTeam trackedTeam = registerForTracking(fplTeamId);
 
-        int currentGameWeek = resolveCurrentGameWeek();
+        int lastCompleted = fixtureDataService.getLastCompletedGameWeek();
 
-        if (isAlreadySyncedForGameWeek(fplTeamId, currentGameWeek)) {
-            log.info("Skipping sync for team {} — already synced for GW{}", fplTeamId, currentGameWeek);
+        if (isAlreadySyncedForLastCompleted(fplTeamId, lastCompleted)) {
+            log.info("Skipping sync for team {} — already synced for GW{}", fplTeamId, lastCompleted);
             return;
         }
 
@@ -88,32 +88,20 @@ public class UserSyncServiceImpl implements UserSyncService {
         trackedTeam.setLastSyncedAt(Instant.now());
         trackedTeamRepository.save(trackedTeam);
 
-        log.info("Full sync completed for team {} (GW{})", fplTeamId, currentGameWeek);
+        log.info("Full sync completed for team {} (GW{})", fplTeamId, lastCompleted);
     }
 
     /**
-     * Returns the current gameweek number from the database.
-     * Falls back to 0 if no current gameweek is found, which guarantees a sync will run.
+     * Returns true if the team's {@link UserTeam} record exists and has already been synced
+     * up to or beyond the last completed gameweek, meaning there is nothing new to fetch.
      *
-     * @return the current gameweek number, or 0 if not found
+     * @param fplTeamId     the FPL team ID to check
+     * @param lastCompleted the last fully completed gameweek number
+     * @return true if {@link UserTeam#getLastSyncedGameWeek()} is at least {@code lastCompleted}
      */
-    private int resolveCurrentGameWeek() {
-        return gameWeekRepository.findByIsCurrentTrue()
-                .map(gameWeek -> gameWeek.getGameWeekNumber())
-                .orElse(0);
-    }
-
-    /**
-     * Returns true if the team's {@link UserTeam} record exists and was already synced
-     * for the given gameweek.
-     *
-     * @param fplTeamId       the FPL team ID to check
-     * @param currentGameWeek the current gameweek number
-     * @return true if the last synced gameweek on {@link UserTeam} matches the current gameweek
-     */
-    private boolean isAlreadySyncedForGameWeek(long fplTeamId, int currentGameWeek) {
+    private boolean isAlreadySyncedForLastCompleted(long fplTeamId, int lastCompleted) {
         return userTeamRepository.findByFplTeamId(fplTeamId)
-                .map(userTeam -> userTeam.getLastSyncedGameWeek() == currentGameWeek)
+                .map(userTeam -> userTeam.getLastSyncedGameWeek() >= lastCompleted)
                 .orElse(false);
     }
 
