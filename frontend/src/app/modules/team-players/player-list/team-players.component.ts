@@ -31,12 +31,12 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
 
   constructor(
     private readonly sharedService: SharedService,
+    private readonly loaderService: LoaderService,
     private readonly teamService: TeamService,
     private readonly route: ActivatedRoute,
     private readonly snackBar: MatSnackBar,
     private readonly dialog: MatDialog,
-    private readonly cdr: ChangeDetectorRef,
-    private readonly loaderService: LoaderService
+    private readonly cdr: ChangeDetectorRef
   ) {}
 
   /** TrackBy function for the player list, keyed by player code. */
