@@ -12,6 +12,7 @@ import { CompareTeamsComponent } from '../../compare-teams/compare-teams.compone
 import { MatDialog } from '@angular/material/dialog';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { SharedService } from '../../../shared/shared.service';
+import { LoaderService } from '../../../core/loader.service';
 
 @Component({
   selector: 'app-team-players',
@@ -34,7 +35,8 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
     private readonly route: ActivatedRoute,
     private readonly snackBar: MatSnackBar,
     private readonly dialog: MatDialog,
-    private readonly cdr: ChangeDetectorRef
+    private readonly cdr: ChangeDetectorRef,
+    private readonly loaderService: LoaderService
   ) {}
 
   /** TrackBy function for the player list, keyed by player code. */
@@ -139,6 +141,7 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
    */
   private loadTeamPlayers(teamId: number): void {
     this.isLoading = true;
+    this.loaderService.show();
     this.teamService.syncUserTeam(teamId).pipe(
       switchMap(() => this.teamService.getTeamPlayers(teamId))
     ).subscribe({
@@ -150,10 +153,12 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
         this.sortPlayersByPosition();
         this.enrichPlayerStats();
         this.isLoading = false;
+        this.loaderService.hide();
         this.cdr.markForCheck();
       },
       error: (err) => {
         this.isLoading = false;
+        this.loaderService.hide();
         this.cdr.markForCheck();
         const message = err?.status === 0
           ? 'Could not reach the server. Please try again later.'
