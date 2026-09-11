@@ -50,11 +50,11 @@ public class GlobalSyncServiceImpl implements GlobalSyncService {
      */
     @Override
     public void syncGlobalData() {
-        List<Map<String, Object>> teamsData = bootstrapDataService.getTeams();
         List<Map<String, Object>> gameWeeksData = bootstrapDataService.getGameWeeks();
         List<Map<String, Object>> playersData = bootstrapDataService.getPlayers();
         List<Map<String, Object>> fixturesData = fixtureDataService.getFixtures();
         Map<Integer, String> positionMap = bootstrapDataService.getPositionMap();
+        List<Map<String, Object>> teamsData = bootstrapDataService.getTeams();
 
         Map<Integer, Team> teamMap = teamSyncService.syncTeams(teamsData);
         gameWeekSyncService.syncGameWeeks(gameWeeksData, fixturesData);

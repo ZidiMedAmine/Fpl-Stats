@@ -12,6 +12,7 @@ import java.util.UUID;
 @Repository
 public interface GameWeekRepository extends JpaRepository<GameWeek, UUID> {
     Optional<GameWeek> findByGameWeekNumber(int gameWeekNumber);
+    Optional<GameWeek> findByIsCurrentTrue();
 
     @Query("SELECT g.gameWeekNumber, g.averageScore FROM GameWeek g WHERE g.averageScore IS NOT NULL")
     List<Object[]> findAllGameWeekAverages();
