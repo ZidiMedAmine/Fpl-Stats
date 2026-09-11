@@ -182,6 +182,10 @@ export class CompareTeamsComponent {
       this.snackBar.open('Please enter two valid FPL team IDs.', 'Dismiss', { duration: 3000 });
       return;
     }
+    if (id1 === id2) {
+      this.snackBar.open('Please enter two different team IDs.', 'Dismiss', { duration: 3000 });
+      return;
+    }
 
     this.isLoading = true;
     this.result = undefined;
