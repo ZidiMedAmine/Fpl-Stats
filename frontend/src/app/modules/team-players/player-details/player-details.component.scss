@@ -207,6 +207,11 @@
 }
 
 // ── Table ────────────────────────────────────────────────────────────
+.table-scroll-wrapper {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .performance-table {
   width: 100%;
   min-width: unset;
