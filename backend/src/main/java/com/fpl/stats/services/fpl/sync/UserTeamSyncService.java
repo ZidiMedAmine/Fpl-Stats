@@ -121,37 +121,14 @@ public class UserTeamSyncService {
                     (List<Map<String, Object>>) historyData.getOrDefault("chips", List.of()));
 
             int lastFinishedGw = fixtureDataService.getLastCompletedGameWeek();
-
             List<Map<String, Object>> finishedGws = currentGws.stream()
                     .filter(gwData -> ((Number) gwData.get("event")).intValue() <= lastFinishedGw)
                     .toList();
 
             if (finishedGws.isEmpty()) return;
 
-            Set<Integer> existingGws = userTeamRankHistoryRepository
-                    .findAllByUserTeam_FplTeamIdOrderByGameWeekAsc(userTeam.getFplTeamId())
-                    .stream()
-                    .map(UserTeamRankHistory::getGameWeek)
-                    .collect(Collectors.toSet());
-
-            int latestGw = ((Number) finishedGws.get(finishedGws.size() - 1).get("event")).intValue();
-
-            List<UserTeamRankHistory> toSave = finishedGws.stream()
-                    .filter(gwData -> {
-                        int gw = ((Number) gwData.get("event")).intValue();
-                        return !existingGws.contains(gw) || gw == latestGw;
-                    })
-                    .map(gwData -> {
-                        int gw = ((Number) gwData.get("event")).intValue();
-                        UserTeamRankHistory entry = existingGws.contains(gw)
-                                ? userTeamRankHistoryRepository
-                                        .findByUserTeam_FplTeamIdAndGameWeek(userTeam.getFplTeamId(), gw)
-                                        .orElseGet(UserTeamRankHistory::new)
-                                : new UserTeamRankHistory();
-                        upsertRankHistory(gwData, userTeam, entry, chipsByGw.get(gw));
-                        return entry;
-                    })
-                    .toList();
+            Set<Integer> existingGws = resolveExistingGwNumbers(userTeam.getFplTeamId());
+            List<UserTeamRankHistory> toSave = buildRankHistoryEntries(finishedGws, userTeam, existingGws, chipsByGw);
 
             userTeamRankHistoryRepository.saveAll(toSave);
             log.info("Synced {} rank history entries for team {}", toSave.size(), userTeam.getFplTeamId());
@@ -161,10 +138,57 @@ public class UserTeamSyncService {
     }
 
     /**
-     * Builds a map of gameweek number to chip name from the chips array in the FPL history response.
+     * Returns the set of gameWeek numbers already recorded in the database for the given team.
+     *
+     * @param fplTeamId the FPL team ID
+     * @return set of already-persisted gameWeek numbers
+     */
+    private Set<Integer> resolveExistingGwNumbers(long fplTeamId) {
+        return userTeamRankHistoryRepository
+                .findAllByUserTeam_FplTeamIdOrderByGameWeekAsc(fplTeamId)
+                .stream()
+                .map(UserTeamRankHistory::getGameWeek)
+                .collect(Collectors.toSet());
+    }
+
+    /**
+     * Builds the list of {@link UserTeamRankHistory} entries to persist.
+     * New GWs are inserted; the latest GW is always refreshed; older existing GWs are skipped.
+     *
+     * @param finishedGws raw per-GW data maps filtered to completed gameWeeks
+     * @param userTeam    the owning team entity
+     * @param existingGws set of gameWeek numbers already in the database
+     * @param chipsByGw   map of gameWeek number to chip name activated that week
+     * @return list of entries ready for {@code saveAll}
+     */
+    private List<UserTeamRankHistory> buildRankHistoryEntries(List<Map<String, Object>> finishedGws,
+                                                               UserTeam userTeam,
+                                                               Set<Integer> existingGws,
+                                                               Map<Integer, String> chipsByGw) {
+        int latestGw = ((Number) finishedGws.get(finishedGws.size() - 1).get("event")).intValue();
+        return finishedGws.stream()
+                .filter(gwData -> {
+                    int gw = ((Number) gwData.get("event")).intValue();
+                    return !existingGws.contains(gw) || gw == latestGw;
+                })
+                .map(gwData -> {
+                    int gw = ((Number) gwData.get("event")).intValue();
+                    UserTeamRankHistory entry = existingGws.contains(gw)
+                            ? userTeamRankHistoryRepository
+                                    .findByUserTeam_FplTeamIdAndGameWeek(userTeam.getFplTeamId(), gw)
+                                    .orElseGet(UserTeamRankHistory::new)
+                            : new UserTeamRankHistory();
+                    upsertRankHistory(gwData, userTeam, entry, chipsByGw.get(gw));
+                    return entry;
+                })
+                .toList();
+    }
+
+    /**
+     * Builds a map of gameWeek number to chip name from the chips array in the FPL history response.
      *
      * @param chips the raw chips array from the FPL {@code /entry/{id}/history/} response
-     * @return map of gameweek → chip name (e.g. "wc", "fh", "bboost", "3xc")
+     * @return map of gameWeek → chip name (e.g. "wc", "fh", "bboost", "3xc")
      */
     private Map<Integer, String> buildChipsByGwMap(List<Map<String, Object>> chips) {
         return chips.stream()

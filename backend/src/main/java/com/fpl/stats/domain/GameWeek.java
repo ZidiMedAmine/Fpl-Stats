@@ -29,8 +29,8 @@ public class GameWeek extends BaseEntity {
     public void setName(String name) { this.name = name; }
     public Instant getDeadlineTime() { return deadlineTime; }
     public void setDeadlineTime(Instant deadlineTime) { this.deadlineTime = deadlineTime; }
-    public boolean isCurrent() { return isCurrent; }
-    public void setCurrent(boolean current) { isCurrent = current; }
+    public boolean getIsCurrent() { return isCurrent; }
+    public void setIsCurrent(boolean current) { isCurrent = current; }
     public boolean isNext() { return isNext; }
     public void setNext(boolean next) { isNext = next; }
     public boolean isPrevious() { return isPrevious; }
