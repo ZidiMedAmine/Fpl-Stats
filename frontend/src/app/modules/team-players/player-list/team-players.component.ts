@@ -24,10 +24,26 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
   user?: UserInfo;
   isLoading = true;
   players: Player[] = [];
-  displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
 
-  readonly Position = Position;
+  /** Columns for goalkeepers — captaincy columns omitted as GKPs are never captained. */
+  readonly gkpColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesOnBench', 'benchPoints', 'playedPoints', 'totalPointsForTeam', 'compare'];
+
+  /** Columns for outfield players (DEF, MID, FWD) — includes captaincy stats. */
+  readonly fieldPlayerColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'timesOnBench', 'benchPoints', 'playedPoints', 'totalPointsForTeam', 'compare'];
+
+  /** Columns for the manager — bench and captaincy columns omitted as they do not apply. */
+  readonly managerColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'playedPoints', 'totalPointsForTeam', 'compare'];
+
   private destroy$ = new Subject<void>();
+
+  /** Returns only the goalkeepers from the current player list. */
+  get goalkeepers(): Player[] { return this.players.filter(p => p.position === Position.GKP); }
+
+  /** Returns outfield players (DEF, MID, FWD) preserving position sort order. */
+  get fieldPlayers(): Player[] { return this.players.filter(p => p.position === Position.DEF || p.position === Position.MID || p.position === Position.FWD); }
+
+  /** Returns manager entries from the current player list. */
+  get teamManagers(): Player[] { return this.players.filter(p => p.position === Position.Manager); }
 
   constructor(
     private readonly sharedService: SharedService,
@@ -57,27 +73,53 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Returns a background color style object based on a player's average points.
+   * Returns a background color style object based on a player's average points and position.
    *
-   * - Gray (`#adadad`) if no points or zero.
-   * - Green (`#b5e6a2`) if average points > 4.9.
-   * - Yellow (`#ffc000`) if average points > 4 but ≤ 4.9.
-   * - Red (`#ff0000`) if average points ≤ 4.
+   * Average is calculated over active GWs with minutes played, capping captain multiplier at 2x.
+   * Thresholds are position-aware:
+   *
+   * | Position | Green  | Yellow      | Red    |
+   * |----------|--------|-------------|--------|
+   * | GKP      | > 5    | > 3.5 ≤ 5  | ≤ 3.5  |
+   * | DEF      | > 5.5  | > 3.5 ≤ 5.5| ≤ 3.5  |
+   * | MID      | > 7    | > 4.5 ≤ 7  | ≤ 4.5  |
+   * | FWD      | > 6.5  | > 4 ≤ 6.5  | ≤ 4    |
+   * | Manager  | > 4.5  | > 3 ≤ 4.5  | ≤ 3    |
    *
    * @param avgPoints - The average points scored by the player.
+   * @param position - The player's position string.
    * @returns An object representing the CSS `backgroundColor` style.
    */
-  public getNameColorStyle(avgPoints: number): Record<string, string> {
+  public getNameColorStyle(avgPoints: number, position: string): Record<string, string> {
     if (!avgPoints || avgPoints === 0) {
       return { backgroundColor: 'var(--color-avg-none)' };
     }
 
-    if (avgPoints > 4.9) {
+    const thresholds = this.getPositionThresholds(position);
+
+    if (avgPoints > thresholds.green) {
       return { backgroundColor: 'var(--color-avg-good)' };
-    } else if (avgPoints > 4) {
+    } else if (avgPoints > thresholds.yellow) {
       return { backgroundColor: 'var(--color-avg-ok)' };
     } else {
       return { backgroundColor: 'var(--color-avg-bad)' };
+    }
+  }
+
+  /**
+   * Returns the green and yellow avg-points thresholds for a given position.
+   *
+   * @param position - The player's position string.
+   * @returns An object with `green` and `yellow` threshold values.
+   */
+  private getPositionThresholds(position: string): { green: number; yellow: number } {
+    switch (position) {
+      case Position.GKP:     return { green: 5,   yellow: 3.5 };
+      case Position.DEF:     return { green: 5.5, yellow: 3.5 };
+      case Position.MID:     return { green: 7,   yellow: 4.5 };
+      case Position.FWD:     return { green: 6.5, yellow: 4   };
+      case Position.Manager: return { green: 4.5, yellow: 3   };
+      default:               return { green: 5,   yellow: 3.5 };
     }
   }
 
