@@ -234,8 +234,7 @@ export class ComparePlayersComponent implements OnInit {
         this.cdr.markForCheck();
       }
     });
-    const defaultKeys = ['totalPoints', 'goals', 'assists', 'xg', 'xa', 'xgi', 'formLast5', 'consistencyPct'];
-    this.selectedStats = defaultKeys.map(key => this.allStats.find(stat => stat.key === key)!);
+    this.selectedStats = this.defaultStatsForPosition(this.data.player.position);
   }
 
   /**
@@ -592,6 +591,32 @@ export class ComparePlayersComponent implements OnInit {
   @HostListener('document:keydown.escape')
   onEscape(): void {
     this.showStatDropdown = false;
+  }
+
+  /**
+   * Returns the default radar chart stats for a given position.
+   * GKPs show goalkeeper-specific stats; DEF includes defensive contributions;
+   * MID and FWD default to attacking stats.
+   *
+   * @param position - The player's position string.
+   * @returns An array of {@link StatDef} representing the default selection.
+   */
+  private defaultStatsForPosition(position: string): StatDef[] {
+    let defaultKeys: string[];
+    switch (position) {
+      case 'GKP':
+        defaultKeys = ['totalPoints', 'cleanSheets', 'saves', 'goalsConceded', 'xgc', 'bonusPoints', 'formLast5', 'consistencyPct'];
+        break;
+      case 'DEF':
+        defaultKeys = ['totalPoints', 'cleanSheets', 'goals', 'assists', 'defensiveContribution', 'tackles', 'formLast5', 'consistencyPct'];
+        break;
+      case 'MID':
+      case 'FWD':
+      default:
+        defaultKeys = ['totalPoints', 'goals', 'assists', 'xg', 'xa', 'xgi', 'formLast5', 'consistencyPct'];
+        break;
+    }
+    return defaultKeys.map(key => this.allStats.find(stat => stat.key === key)!);
   }
 
   /**

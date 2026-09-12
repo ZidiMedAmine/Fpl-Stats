@@ -24,26 +24,24 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
   user?: UserInfo;
   isLoading = true;
   players: Player[] = [];
+  readonly displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
 
-  /** Columns for goalkeepers — captaincy columns omitted as GKPs are never captained. */
-  readonly gkpColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesOnBench', 'benchPoints', 'playedPoints', 'totalPointsForTeam', 'compare'];
+  showOwnedOnly = false;
 
-  /** Columns for outfield players (DEF, MID, FWD) — includes captaincy stats. */
-  readonly fieldPlayerColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'timesOnBench', 'benchPoints', 'playedPoints', 'totalPointsForTeam', 'compare'];
-
-  /** Columns for the manager — bench and captaincy columns omitted as they do not apply. */
-  readonly managerColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'playedPoints', 'totalPointsForTeam', 'compare'];
-
+  readonly Position = Position;
   private destroy$ = new Subject<void>();
 
-  /** Returns only the goalkeepers from the current player list. */
-  get goalkeepers(): Player[] { return this.players.filter(p => p.position === Position.GKP); }
-
-  /** Returns outfield players (DEF, MID, FWD) preserving position sort order. */
-  get fieldPlayers(): Player[] { return this.players.filter(p => p.position === Position.DEF || p.position === Position.MID || p.position === Position.FWD); }
-
-  /** Returns manager entries from the current player list. */
-  get teamManagers(): Player[] { return this.players.filter(p => p.position === Position.Manager); }
+  /**
+   * Returns the filtered player list based on the current ownership filter.
+   * When `showOwnedOnly` is true, only players in the current gameweek squad are shown.
+   */
+  get filteredPlayers(): Player[] {
+    if (!this.showOwnedOnly) return this.players;
+    const currentGw = this.user?.currentGameWeek ?? 0;
+    return this.players.filter(player =>
+      player.performances.some(performance => performance.gameWeek === currentGw)
+    );
+  }
 
   constructor(
     private readonly sharedService: SharedService,
