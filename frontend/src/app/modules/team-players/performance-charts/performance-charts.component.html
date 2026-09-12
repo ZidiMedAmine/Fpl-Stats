@@ -55,6 +55,7 @@
       <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="showChart('teamValue')">Team Value</button>
       <button class="chart-tab" [class.active]="activeChart === 'weekly'" (click)="showChart('weekly')">Weekly Stats</button>
       <button class="chart-tab" [class.active]="activeChart === 'position'" (click)="showChart('position')">By Position</button>
+      <button class="chart-tab" [class.active]="activeChart === 'formation'" (click)="showChart('formation')">By Formation</button>
     </div>
   </div>
 
@@ -212,4 +213,28 @@
       </div>
     </div>
   </div>
+
+  <div *ngIf="activeChart === 'formation'">
+    <div class="weekly-summary-row">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ formationSummary.mostUsed }}</span>
+        <span class="weekly-stat-label">Most used · {{ formationSummary.mostUsedCount }} GWs</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ formationSummary.bestAvg }}</span>
+        <span class="weekly-stat-label">Best avg · {{ formationSummary.bestAvgPts }} pts/GW</span>
+      </div>
+    </div>
+    <div class="doughnut-row">
+      <div class="doughnut-card formation-bar-card">
+        <div class="doughnut-title">Avg Points by Formation</div>
+        <canvas baseChart [data]="formationPointsChart" [options]="formationPointsOptions" [type]="'bar'"></canvas>
+      </div>
+      <div class="doughnut-card">
+        <div class="doughnut-title">Formation Frequency</div>
+        <canvas baseChart [data]="formationFrequencyChart" [options]="formationFrequencyOptions" [type]="'doughnut'"></canvas>
+      </div>
+    </div>
+  </div>
+
 </div>

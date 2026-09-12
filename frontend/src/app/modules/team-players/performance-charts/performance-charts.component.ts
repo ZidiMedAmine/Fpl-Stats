@@ -323,6 +323,59 @@ export class PerformanceChartsComponent implements OnChanges {
 
   weeklyBarOptions: ChartConfiguration<'bar'>['options'];
 
+  formationPointsOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    indexAxis: 'y',
+    plugins: {
+      legend: { display: false },
+      datalabels: {
+        color: CHART_COLORS.ui.white,
+        font: { size: 11, weight: 'bold' },
+        anchor: 'end',
+        align: 'start',
+        formatter: (value: number) => `${value} pts`
+      },
+      tooltip: {
+        callbacks: {
+          label: (item) => ` Avg: ${item.raw} pts/GW`
+        }
+      }
+    },
+    scales: {
+      x: { beginAtZero: true, ticks: { color: CHART_COLORS.ui.axisLabel }, grid: { color: CHART_COLORS.ui.gridLine } },
+      y: { ticks: { color: CHART_COLORS.ui.axisLabel, font: { size: 13, weight: 'bold' } }, grid: { display: false } }
+    }
+  };
+
+  formationFrequencyOptions: ChartConfiguration<'doughnut'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          color: CHART_COLORS.ui.tickLabel,
+          padding: 16,
+          boxWidth: 12,
+          usePointStyle: true,
+          font: { size: 12, weight: 'bold' }
+        }
+      },
+      datalabels: {
+        display: true,
+        color: CHART_COLORS.ui.axisLabel,
+        font: { weight: 'bold', size: 11 },
+        anchor: 'center',
+        align: 'center',
+        formatter: (value: number, context: unknown) => this.formatDoughnutPercentLabel(value, context)
+      }
+    },
+    elements: { arc: { borderWidth: 2, borderColor: CHART_COLORS.ui.white } },
+    cutout: '62%'
+  };
+
   totalPointsChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
   rankHistoryChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
   captainPointsChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
@@ -333,6 +386,9 @@ export class PerformanceChartsComponent implements OnChanges {
   weeklyOverviewChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   teamValueChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
   gwRankChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
+  formationPointsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  formationFrequencyChart: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
+  formationSummary: { mostUsed: string; mostUsedCount: number; bestAvg: string; bestAvgPts: number } = { mostUsed: '-', mostUsedCount: 0, bestAvg: '-', bestAvgPts: 0 };
   rankMode: 'overall' | 'gw' = 'overall';
   positionSummary = { pointsPerMillion: 0, averagePlayerValue: 0 };
 
@@ -414,6 +470,7 @@ export class PerformanceChartsComponent implements OnChanges {
       this.prepareCaptainHighlight();
       this.prepareBenchWasted();
       this.prepareBestGW();
+      this.prepareFormationCharts();
     }
   }
 
@@ -958,6 +1015,88 @@ export class PerformanceChartsComponent implements OnChanges {
     if (position === Position.GKP || position === Position.DEF) return 4;
     if (position === Position.MID) return 1;
     return 0;
+  }
+
+  /**
+   * Prepares the formation avg-points bar chart and formation frequency doughnut chart.
+   * Derives the formation per GW from intended starters (not benched), then aggregates
+   * total GW points per formation to compute averages.
+   */
+  private prepareFormationCharts(): void {
+    const formationPointsMap = this.computeFormationPointsMap();
+    const sorted = Array.from(formationPointsMap.entries())
+      .sort(([, a], [, b]) => b.length - a.length);
+
+    const formationColors = [CHART_COLORS.primary, CHART_COLORS.gold, CHART_COLORS.teal, CHART_COLORS.pink, CHART_COLORS.success, CHART_COLORS.danger];
+    const labels    = sorted.map(([formation]) => formation);
+    const avgPoints = sorted.map(([, points]) => Math.round(points.reduce((sum, p) => sum + p, 0) / points.length * 10) / 10);
+    const counts    = sorted.map(([, points]) => points.length);
+    const colors    = sorted.map((_, index) => formationColors[index % formationColors.length]);
+
+    this.formationPointsChart    = { labels, datasets: [{ data: avgPoints, label: 'Avg GW Points', backgroundColor: colors, borderRadius: 4 }] };
+    this.formationFrequencyChart = { labels: labels.map((f, i) => `${f}  (${counts[i]} GWs)`), datasets: [{ data: counts, backgroundColor: colors }] };
+
+    const bestIndex = avgPoints.indexOf(Math.max(...avgPoints));
+    this.formationSummary = {
+      mostUsed: labels[0] ?? '-',
+      mostUsedCount: counts[0] ?? 0,
+      bestAvg: labels[bestIndex] ?? '-',
+      bestAvgPts: avgPoints[bestIndex] ?? 0
+    };
+  }
+
+  /**
+   * Builds a map of formation string (e.g. "4-3-3") to an array of total GW points
+   * scored in each gameweek that formation was played.
+   *
+   * @returns Map keyed by formation with per-GW point totals as values.
+   */
+  private computeFormationPointsMap(): Map<string, number[]> {
+    const map = new Map<string, number[]>();
+    for (let gw = 1; gw <= this.user.currentGameWeek; gw++) {
+      const formation = this.deriveFormationForGw(gw);
+      if (!formation) continue;
+      if (!map.has(formation)) map.set(formation, []);
+      map.get(formation)!.push(this.computeGwTotalPoints(gw));
+    }
+    return map;
+  }
+
+  /**
+   * Derives the formation string for a given gameweek from the intended starting XI.
+   * Returns `null` if the outfield starter count is not exactly 10 (incomplete data).
+   *
+   * @param gameWeek - The gameweek number to derive a formation for.
+   * @returns A formation string like `"4-3-3"`, or `null` if data is incomplete.
+   */
+  private deriveFormationForGw(gameWeek: number): string | null {
+    const count = (position: string) =>
+      this.user.players.filter(p => p.position === position &&
+        p.performances.some(perf => perf.gameWeek === gameWeek && perf.wasInMyTeam && !perf.wasBenched)
+      ).length;
+
+    const def = count(Position.DEF);
+    const mid = count(Position.MID);
+    const fwd = count(Position.FWD);
+    return def + mid + fwd === 10 ? `${def}-${mid}-${fwd}` : null;
+  }
+
+  /**
+   * Computes the total points scored by the team in a single gameweek,
+   * including captain multiplier and manager points.
+   *
+   * @param gameWeek - The gameweek number to calculate total points for.
+   * @returns The total points scored that gameweek.
+   */
+  private computeGwTotalPoints(gameWeek: number): number {
+    let total = 0;
+    this.user.players.forEach(player => {
+      const perf = player.performances.find(p => p.gameWeek === gameWeek && p.wasInMyTeam);
+      if (!perf) return;
+      if (perf.multiplier > 0) total += perf.points * perf.multiplier;
+      if (player.position === Position.Manager && perf.wasBenched) total += perf.points;
+    });
+    return total;
   }
 
   /**
