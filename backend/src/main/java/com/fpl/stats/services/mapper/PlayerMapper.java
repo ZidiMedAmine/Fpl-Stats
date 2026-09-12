@@ -92,6 +92,8 @@ public final class PlayerMapper {
 
         List<GameWeekPerformance> performances = new ArrayList<>();
         int totalPoints = 0;
+        int avgPointsTotal = 0;
+        int activeGwCount = 0;
 
         for (UserPick pick : playerPicks) {
             int gwNumber = pick.getGameWeek().getGameWeekNumber();
@@ -110,6 +112,11 @@ public final class PlayerMapper {
                 int gwPoints = history.getPoints();
                 if (pick.getMultiplier() > 0) {
                     totalPoints += gwPoints * pick.getMultiplier();
+                    if (history.getMinutesPlayed() > 0) {
+                        int effectiveMultiplier = Math.min(pick.getMultiplier(), 2);
+                        avgPointsTotal += gwPoints * effectiveMultiplier;
+                        activeGwCount++;
+                    }
                 }
                 builder.points(gwPoints)
                         .minutesPlayed(history.getMinutesPlayed())
@@ -147,8 +154,7 @@ public final class PlayerMapper {
 
         playerDto.setPerformances(performances);
         playerDto.setTotalPointsForTeam(totalPoints);
-        playerDto.setAvgPoints(performances.isEmpty() ? 0 :
-                (double) totalPoints / performances.size());
+        playerDto.setAvgPoints(activeGwCount == 0 ? 0 : (double) avgPointsTotal / activeGwCount);
         return playerDto;
     }
 

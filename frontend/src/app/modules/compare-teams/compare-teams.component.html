@@ -76,12 +76,6 @@
           <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="activeChart = 'teamValue'">Team Value</button>
           <button class="chart-tab" [class.active]="activeChart === 'captain'" (click)="activeChart = 'captain'">Captain</button>
         </div>
-        <!--<div class="chart-legend">
-          <span class="legend-dot" style="background:#37003c"></span>
-          <span class="legend-name">{{ result.team1.teamName }}</span>
-          <span class="legend-dot" style="background:#00c3ff"></span>
-          <span class="legend-name">{{ result.team2.teamName }}</span>
-        </div>-->
       </div>
       <div class="chart-container">
         <canvas *ngIf="activeChart === 'totalPoints'" baseChart [data]="totalPointsChart" [options]="totalPointsOptions" [type]="'line'"></canvas>
