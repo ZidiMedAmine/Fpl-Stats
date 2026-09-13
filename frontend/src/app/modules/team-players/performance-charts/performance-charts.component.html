@@ -178,6 +178,14 @@
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.bonus }} pts</span>
         </div>
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Defensive</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill detail-bar-fill--defensive" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.defensive / weeklyHoveredGW.total) * 100 : 0"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.defensiveCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.defensive }} pts</span>
+        </div>
       </div>
       <div class="detail-total">Total: {{ weeklyHoveredGW.total }} pts</div>
     </div>

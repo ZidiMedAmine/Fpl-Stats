@@ -154,13 +154,19 @@ public class UserInfoServiceImpl implements UserInfoService {
                         row -> (Integer) row[1]
                 ));
 
+        Map<Integer, Integer> gameWeekHighScores = gameWeekRepository.findAllGameWeekHighScores().stream()
+                .collect(Collectors.toMap(
+                        row -> (Integer) row[0],
+                        row -> (Integer) row[1]
+                ));
+
         List<UserTeamRankHistory> rankHistory =
                 userTeamRankHistoryRepository.findAllByUserTeam_FplTeamIdOrderByGameWeekAsc(
                         userTeam.getFplTeamId());
 
         Integer rankChange = computeRankChange(rankHistory);
 
-        return UserTeamMapper.toDto(userTeam, playerDtos, gameWeekAverages, rankChange, rankHistory);
+        return UserTeamMapper.toDto(userTeam, playerDtos, gameWeekAverages, gameWeekHighScores, rankChange, rankHistory);
     }
 
     /**

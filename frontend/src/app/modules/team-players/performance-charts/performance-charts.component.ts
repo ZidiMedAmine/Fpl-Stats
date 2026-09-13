@@ -14,11 +14,13 @@ interface WeeklyGWData {
   assists: number;
   cleanSheets: number;
   bonus: number;
+  defensive: number;
   total: number;
   goalCount: number;
   assistCount: number;
   cleanSheetCount: number;
   bonusCount: number;
+  defensiveCount: number;
 }
 
 interface DoughnutLabelContext {
@@ -382,7 +384,10 @@ export class PerformanceChartsComponent implements OnChanges {
       }
     },
     scales: {
-      x: { ticks: { color: CHART_COLORS.ui.axisLabel, font: { size: 13, weight: 'bold' } }, grid: { display: false } },
+      x: {
+        ticks: { color: CHART_COLORS.ui.axisLabel, font: { size: 13, weight: 'bold' } },
+        grid: { display: false }
+      },
       y: {
         beginAtZero: true,
         ticks: { color: CHART_COLORS.ui.axisLabel },
@@ -695,6 +700,10 @@ export class PerformanceChartsComponent implements OnChanges {
       this.user.gameWeekAverages?.[index + 1] ?? null
     );
 
+    const highScores = Array.from({ length: gameWeekCount }, (_, index) =>
+      this.user.gameWeekHighScores?.[index + 1] ?? null
+    );
+
     this.totalPointsChart = {
       labels,
       datasets: [
@@ -712,6 +721,16 @@ export class PerformanceChartsComponent implements OnChanges {
           label: 'GW Average',
           borderDash: [6, 4],
           borderColor: CHART_COLORS.pink,
+          backgroundColor: 'transparent',
+          fill: false,
+          pointRadius: 5,
+          tension: 0.3
+        },
+        {
+          data: highScores,
+          label: 'GW High Score',
+          borderDash: [3, 3],
+          borderColor: CHART_COLORS.gold,
           backgroundColor: 'transparent',
           fill: false,
           pointRadius: 5,
@@ -786,10 +805,12 @@ export class PerformanceChartsComponent implements OnChanges {
     const assists         = new Array(gameWeekCount).fill(0);
     const cleanSheets     = new Array(gameWeekCount).fill(0);
     const bonus           = new Array(gameWeekCount).fill(0);
+    const defensive       = new Array(gameWeekCount).fill(0);
     const goalCount       = new Array(gameWeekCount).fill(0);
     const assistCount     = new Array(gameWeekCount).fill(0);
     const cleanSheetCount = new Array(gameWeekCount).fill(0);
     const bonusCount      = new Array(gameWeekCount).fill(0);
+    const defensiveCount  = new Array(gameWeekCount).fill(0);
 
     this.user.players.forEach(player => {
       if (player.position === Position.Manager) return;
@@ -805,6 +826,12 @@ export class PerformanceChartsComponent implements OnChanges {
         assistCount[index] += performance.assists;
         if (performance.cleanSheet) cleanSheetCount[index]++;
         if (performance.bonusPoints > 0) bonusCount[index]++;
+
+        const threshold = this.getDefensiveContributionThreshold(player.position);
+        if (threshold !== null && performance.defensiveContribution > 0) {
+          defensive[index]      += Math.floor(performance.defensiveContribution / threshold);
+          defensiveCount[index] += performance.defensiveContribution;
+        }
       });
     });
 
@@ -814,11 +841,13 @@ export class PerformanceChartsComponent implements OnChanges {
       assists: assists[index],
       cleanSheets: cleanSheets[index],
       bonus: bonus[index],
-      total: goals[index] + assists[index] + cleanSheets[index] + bonus[index],
+      defensive: defensive[index],
+      total: goals[index] + assists[index] + cleanSheets[index] + bonus[index] + defensive[index],
       goalCount: goalCount[index],
       assistCount: assistCount[index],
       cleanSheetCount: cleanSheetCount[index],
       bonusCount: bonusCount[index],
+      defensiveCount: defensiveCount[index],
     }));
 
     const totals = this.weeklyGWData.map(data => data.total);
@@ -1062,10 +1091,23 @@ export class PerformanceChartsComponent implements OnChanges {
   }
 
   /**
-   * Prepares the formation avg-points doughnut, frequency doughnut, and total-points bar chart.
+   * Returns the defensive contribution threshold for the given position.
+   * One point is awarded for every N defensive contributions in a gameweek.
+   * Returns `null` for positions that do not earn defensive contribution points.
+   *
+   * @param position - The position key from {@link Position}.
+   * @returns The contribution threshold, or `null` if not applicable.
+   */
+  private getDefensiveContributionThreshold(position: string): number | null {
+    if (position === Position.DEF) return 10;
+    if (position === Position.MID) return 12;
+    return null;
+  }
+
+  /**
+   * Prepares the formation avg-points bar chart and formation frequency doughnut chart.
    * Derives the formation per GW from intended starters (not benched), then aggregates
-   * total GW points per formation to compute averages and totals.
-   * Sorted by average points descending so the best-performing formation appears first.
+   * total GW points per formation to compute averages.
    */
   private prepareFormationCharts(): void {
     const formationPointsMap = this.computeFormationPointsMap();
@@ -1084,12 +1126,12 @@ export class PerformanceChartsComponent implements OnChanges {
 
     this.formationPointsChart    = { labels, datasets: [{ data: avgPoints, backgroundColor: colors }] };
     this.formationFrequencyChart = { labels: labels.map((f, i) => `${f}  (${counts[i]} GWs)`), datasets: [{ data: counts, backgroundColor: colors }] };
-    this.formationGwPointsChart  = this.buildFormationTotalPointsChart(labels, colors, formationPointsMap);
+    this.formationGwPointsChart  = this.buildFormationGwPointsChart(labels, colors, formationPointsMap);
 
     const bestIndex = avgPoints.indexOf(Math.max(...avgPoints));
     this.formationSummary = {
-      mostUsed: labels.reduce((best, label, index) => counts[index] > counts[labels.indexOf(best)] ? label : best, labels[0] ?? '-'),
-      mostUsedCount: Math.max(...counts, 0),
+      mostUsed: labels[0] ?? '-',
+      mostUsedCount: counts[0] ?? 0,
       bestAvg: labels[bestIndex] ?? '-',
       bestAvgPts: avgPoints[bestIndex] ?? 0
     };
@@ -1104,7 +1146,7 @@ export class PerformanceChartsComponent implements OnChanges {
    * @param formationPointsMap - Map of formation to per-GW points array.
    * @returns Bar chart data with one bar per formation.
    */
-  private buildFormationTotalPointsChart(
+  private buildFormationGwPointsChart(
     labels: string[],
     colors: string[],
     formationPointsMap: Map<string, number[]>

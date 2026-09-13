@@ -24,15 +24,18 @@ public final class UserTeamMapper {
     /**
      * Maps a {@link UserTeam} and its associated data to a {@link UserTeamDto}.
      *
-     * @param userTeam         the user team entity
-     * @param players          the list of player DTOs for this team's current picks
-     * @param gameWeekAverages map of gameweek number to the FPL global average score for that week
-     * @param rankChange       the change in overall rank since the previous gameweek (negative = improved)
-     * @param rankHistory      the per-gameweek rank history entries for this team
+     * @param userTeam            the user team entity
+     * @param players             the list of player DTOs for this team's current picks
+     * @param gameWeekAverages    map of gameweek number to the FPL global average score for that week
+     * @param gameWeekHighScores  map of gameweek number to the FPL global highest score for that week
+     * @param rankChange          the change in overall rank since the previous gameweek (negative = improved)
+     * @param rankHistory         the per-gameweek rank history entries for this team
      * @return a fully populated {@link UserTeamDto}
      */
     public static UserTeamDto toDto(UserTeam userTeam, List<PlayerDto> players,
-                                    Map<Integer, Integer> gameWeekAverages, Integer rankChange,
+                                    Map<Integer, Integer> gameWeekAverages,
+                                    Map<Integer, Integer> gameWeekHighScores,
+                                    Integer rankChange,
                                     List<UserTeamRankHistory> rankHistory) {
         UserTeamDto dto = new UserTeamDto();
         dto.setFplTeamId(userTeam.getFplTeamId());
@@ -44,6 +47,7 @@ public final class UserTeamMapper {
         dto.setCurrentGameWeek(userTeam.getLastSyncedGameWeek());
         dto.setPlayers(players);
         dto.setGameWeekAverages(gameWeekAverages);
+        dto.setGameWeekHighScores(gameWeekHighScores);
         dto.setTeamValue(userTeam.getTeamValue());
         dto.setBank(userTeam.getBank());
         dto.setTotalTransfers(userTeam.getTotalTransfers());
