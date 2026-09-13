@@ -226,13 +226,17 @@
       </div>
     </div>
     <div class="doughnut-row">
-      <div class="doughnut-card formation-bar-card">
+      <div class="doughnut-card">
         <div class="doughnut-title">Avg Points by Formation</div>
-        <canvas baseChart [data]="formationPointsChart" [options]="formationPointsOptions" [type]="'bar'"></canvas>
+        <canvas baseChart [data]="formationPointsChart" [options]="formationPointsOptions" [type]="'doughnut'"></canvas>
       </div>
       <div class="doughnut-card">
         <div class="doughnut-title">Formation Frequency</div>
         <canvas baseChart [data]="formationFrequencyChart" [options]="formationFrequencyOptions" [type]="'doughnut'"></canvas>
+      </div>
+      <div class="doughnut-card formation-gw-card">
+        <div class="doughnut-title">Total Points by Formation</div>
+        <canvas baseChart [data]="formationGwPointsChart" [options]="formationGwPointsOptions" [type]="'bar'"></canvas>
       </div>
     </div>
   </div>

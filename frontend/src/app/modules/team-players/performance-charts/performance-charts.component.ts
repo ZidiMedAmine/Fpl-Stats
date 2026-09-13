@@ -323,10 +323,49 @@ export class PerformanceChartsComponent implements OnChanges {
 
   weeklyBarOptions: ChartConfiguration<'bar'>['options'];
 
-  formationPointsOptions: ChartConfiguration<'bar'>['options'] = {
+  formationPointsOptions: ChartConfiguration<'doughnut'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
-    indexAxis: 'y',
+    plugins: {
+      legend: {
+        display: true,
+        position: 'bottom',
+        labels: {
+          color: CHART_COLORS.ui.tickLabel,
+          padding: 16,
+          boxWidth: 12,
+          usePointStyle: true,
+          generateLabels: (chart) => {
+            const dataset = chart.data.datasets[0];
+            const values = dataset.data as number[];
+            return (chart.data.labels as string[]).map((label, index) => ({
+              text: `${label}  ${values[index]} pts/GW`,
+              fillStyle: (dataset.backgroundColor as string[])[index],
+              strokeStyle: (dataset.backgroundColor as string[])[index],
+              lineWidth: 0,
+              hidden: false,
+              index,
+              pointStyle: 'circle' as const,
+            }));
+          }
+        }
+      },
+      datalabels: {
+        display: true,
+        color: CHART_COLORS.ui.axisLabel,
+        font: { weight: 'bold', size: 11 },
+        anchor: 'center',
+        align: 'center',
+        formatter: (value: number, context: unknown) => this.formatDoughnutPercentLabel(value, context)
+      }
+    },
+    elements: { arc: { borderWidth: 2, borderColor: CHART_COLORS.ui.white } },
+    cutout: '62%'
+  };
+
+  formationGwPointsOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
       datalabels: {
@@ -338,13 +377,17 @@ export class PerformanceChartsComponent implements OnChanges {
       },
       tooltip: {
         callbacks: {
-          label: (item) => ` Avg: ${item.raw} pts/GW`
+          label: (item) => ` Total: ${item.raw} pts`
         }
       }
     },
     scales: {
-      x: { beginAtZero: true, ticks: { color: CHART_COLORS.ui.axisLabel }, grid: { color: CHART_COLORS.ui.gridLine } },
-      y: { ticks: { color: CHART_COLORS.ui.axisLabel, font: { size: 13, weight: 'bold' } }, grid: { display: false } }
+      x: { ticks: { color: CHART_COLORS.ui.axisLabel, font: { size: 13, weight: 'bold' } }, grid: { display: false } },
+      y: {
+        beginAtZero: true,
+        ticks: { color: CHART_COLORS.ui.axisLabel },
+        grid: { color: CHART_COLORS.ui.gridLine }
+      }
     }
   };
 
@@ -386,8 +429,9 @@ export class PerformanceChartsComponent implements OnChanges {
   weeklyOverviewChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   teamValueChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
   gwRankChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
-  formationPointsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  formationPointsChart: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
   formationFrequencyChart: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
+  formationGwPointsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   formationSummary: { mostUsed: string; mostUsedCount: number; bestAvg: string; bestAvgPts: number } = { mostUsed: '-', mostUsedCount: 0, bestAvg: '-', bestAvgPts: 0 };
   rankMode: 'overall' | 'gw' = 'overall';
   positionSummary = { pointsPerMillion: 0, averagePlayerValue: 0 };
@@ -1018,14 +1062,19 @@ export class PerformanceChartsComponent implements OnChanges {
   }
 
   /**
-   * Prepares the formation avg-points bar chart and formation frequency doughnut chart.
+   * Prepares the formation avg-points doughnut, frequency doughnut, and total-points bar chart.
    * Derives the formation per GW from intended starters (not benched), then aggregates
-   * total GW points per formation to compute averages.
+   * total GW points per formation to compute averages and totals.
+   * Sorted by average points descending so the best-performing formation appears first.
    */
   private prepareFormationCharts(): void {
     const formationPointsMap = this.computeFormationPointsMap();
     const sorted = Array.from(formationPointsMap.entries())
-      .sort(([, a], [, b]) => b.length - a.length);
+      .sort(([, a], [, b]) => {
+        const avgA = a.reduce((sum, pts) => sum + pts, 0) / a.length;
+        const avgB = b.reduce((sum, pts) => sum + pts, 0) / b.length;
+        return avgB - avgA;
+      });
 
     const formationColors = [CHART_COLORS.primary, CHART_COLORS.gold, CHART_COLORS.teal, CHART_COLORS.pink, CHART_COLORS.success, CHART_COLORS.danger];
     const labels    = sorted.map(([formation]) => formation);
@@ -1033,15 +1082,39 @@ export class PerformanceChartsComponent implements OnChanges {
     const counts    = sorted.map(([, points]) => points.length);
     const colors    = sorted.map((_, index) => formationColors[index % formationColors.length]);
 
-    this.formationPointsChart    = { labels, datasets: [{ data: avgPoints, label: 'Avg GW Points', backgroundColor: colors, borderRadius: 4 }] };
+    this.formationPointsChart    = { labels, datasets: [{ data: avgPoints, backgroundColor: colors }] };
     this.formationFrequencyChart = { labels: labels.map((f, i) => `${f}  (${counts[i]} GWs)`), datasets: [{ data: counts, backgroundColor: colors }] };
+    this.formationGwPointsChart  = this.buildFormationTotalPointsChart(labels, colors, formationPointsMap);
 
     const bestIndex = avgPoints.indexOf(Math.max(...avgPoints));
     this.formationSummary = {
-      mostUsed: labels[0] ?? '-',
-      mostUsedCount: counts[0] ?? 0,
+      mostUsed: labels.reduce((best, label, index) => counts[index] > counts[labels.indexOf(best)] ? label : best, labels[0] ?? '-'),
+      mostUsedCount: Math.max(...counts, 0),
       bestAvg: labels[bestIndex] ?? '-',
       bestAvgPts: avgPoints[bestIndex] ?? 0
+    };
+  }
+
+  /**
+   * Builds a total-points bar chart with one bar per formation.
+   * Each bar represents the sum of all GW points scored while that formation was in use.
+   *
+   * @param labels - Formation labels in display order.
+   * @param colors - Corresponding chart colors for each formation.
+   * @param formationPointsMap - Map of formation to per-GW points array.
+   * @returns Bar chart data with one bar per formation.
+   */
+  private buildFormationTotalPointsChart(
+    labels: string[],
+    colors: string[],
+    formationPointsMap: Map<string, number[]>
+  ): ChartConfiguration<'bar'>['data'] {
+    const totals = labels.map(formation =>
+      (formationPointsMap.get(formation) ?? []).reduce((sum, pts) => sum + pts, 0)
+    );
+    return {
+      labels,
+      datasets: [{ data: totals, backgroundColor: colors, borderRadius: 4 }]
     };
   }
 
