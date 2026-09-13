@@ -75,6 +75,7 @@
           <button class="chart-tab" [class.active]="activeChart === 'rank'" (click)="activeChart = 'rank'">Rank History</button>
           <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="activeChart = 'teamValue'">Team Value</button>
           <button class="chart-tab" [class.active]="activeChart === 'captain'" (click)="activeChart = 'captain'">Captain</button>
+          <button class="chart-tab" [class.active]="activeChart === 'formation'" (click)="activeChart = 'formation'">Formation</button>
         </div>
       </div>
       <div class="chart-container">
@@ -83,6 +84,7 @@
         <canvas *ngIf="activeChart === 'rank'" baseChart [data]="rankChart" [options]="rankOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'teamValue'" baseChart [data]="teamValueChart" [options]="teamValueOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'captain'" baseChart [data]="captainChart" [options]="captainOptions" [type]="'bar'"></canvas>
+        <canvas *ngIf="activeChart === 'formation'" baseChart [data]="formationComparisonChart" [options]="formationComparisonOptions" [type]="'bar'"></canvas>
       </div>
     </div>
 
