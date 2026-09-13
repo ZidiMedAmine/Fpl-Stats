@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TeamService } from '../../core/services/team.service';
 import { CompareResult } from '../../core/models/compare.model';
 import { UserInfo } from '../../core/models/UserInfo.model';
+import { Position } from '../../core/models/player.model';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
 
@@ -45,9 +46,11 @@ export class CompareTeamsComponent {
 
   h2h: H2H = { wins1: 0, wins2: 0, draws: 0 };
 
-  activeChart: 'totalPoints' | 'gw' | 'rank' | 'teamValue' | 'captain' = 'totalPoints';
+  activeChart: 'totalPoints' | 'gw' | 'rank' | 'teamValue' | 'captain' | 'formation' = 'totalPoints';
   chipEvents1: ChipEvent[] = [];
   chipEvents2: ChipEvent[] = [];
+  captainNames1: string[] = [];
+  captainNames2: string[] = [];
   readonly chipLabels = CHIP_LABELS;
 
   // ── GW Points ─────────────────────────────────────────────────────────
@@ -56,7 +59,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
       tooltip: { mode: 'index', intersect: false },
       datalabels: { display: false }
     },
@@ -69,7 +72,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: { mode: 'index', intersect: false }
     },
@@ -82,7 +85,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: {
         mode: 'index',
@@ -106,7 +109,7 @@ export class CompareTeamsComponent {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
       datalabels: { display: false },
       tooltip: {
         mode: 'index',
@@ -121,20 +124,54 @@ export class CompareTeamsComponent {
     }
   };
 
-  // ── Captain ───────────────────────────────────────────────────────────
-  captainChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
-  captainOptions: ChartConfiguration<'bar'>['options'] = {
+  // ── Formation Comparison ──────────────────────────────────────────────
+  formationComparisonChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  formationComparisonOptions: ChartConfiguration<'bar'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
-      legend: { display: true, labels: { usePointStyle: true }, onClick: () => undefined },
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
       datalabels: {
         display: true,
         anchor: 'center',
         align: 'center',
         color: CHART_COLORS.ui.white,
         font: { size: 10, weight: 'bold' },
-        formatter: (value: number) => value > 0 ? value : ''
+        formatter: (value: number) => value > 0 ? `${value}` : ''
+      },
+      tooltip: {
+        callbacks: {
+          label: (item) => ` ${item.dataset.label}: ${item.raw} pts/GW`
+        }
+      }
+    },
+    scales: {
+      x: { ticks: { font: { size: 13, weight: 'bold' } }, grid: { display: false } },
+      y: { beginAtZero: true, title: { display: true, text: 'Avg pts / GW' } }
+    }
+  };
+
+  // ── Captain ───────────────────────────────────────────────────────────
+  captainChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  captainOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
+      datalabels: {
+        display: true,
+        anchor: 'center',
+        align: 'center',
+        color: CHART_COLORS.ui.white,
+        font: { size: 9, weight: 'bold' },
+        formatter: (value: number, context: unknown) => {
+          if (value === 0) return '';
+          const ctx = context as { dataIndex: number; datasetIndex: number };
+          const name = ctx.datasetIndex === 0
+            ? this.captainNames1[ctx.dataIndex]
+            : this.captainNames2[ctx.dataIndex];
+          return name ? [`${value} pts`, name] : `${value} pts`;
+        }
       },
       tooltip: {
         callbacks: {
@@ -232,6 +269,7 @@ export class CompareTeamsComponent {
     this.buildRankChart(user1, user2);
     this.buildTeamValueChart(user1, user2);
     this.buildCaptainChart(user1, user2);
+    this.buildFormationComparisonChart(user1, user2);
     this.chipEvents1 = this.extractChipEvents(user1);
     this.chipEvents2 = this.extractChipEvents(user2);
     this.isLoading = false;
@@ -487,12 +525,15 @@ export class CompareTeamsComponent {
     const cap2 = this.getCaptainPointsPerGW(user2);
     const gameWeeks = Array.from(new Set([...cap1.keys(), ...cap2.keys()])).sort((a, b) => a - b);
 
+    this.captainNames1 = gameWeeks.map(gw => cap1.get(gw)?.name ?? '');
+    this.captainNames2 = gameWeeks.map(gw => cap2.get(gw)?.name ?? '');
+
     this.captainChart = {
       labels: gameWeeks.map(gw => `GW${gw}`),
       datasets: [
         {
           label: user1.teamName,
-          data: gameWeeks.map(gw => cap1.get(gw) ?? 0),
+          data: gameWeeks.map(gw => cap1.get(gw)?.points ?? 0),
           backgroundColor: CHART_COLORS.primaryAlpha70,
           borderColor: CHART_COLORS.primary,
           borderWidth: 1,
@@ -500,7 +541,7 @@ export class CompareTeamsComponent {
         },
         {
           label: user2.teamName,
-          data: gameWeeks.map(gw => cap2.get(gw) ?? 0),
+          data: gameWeeks.map(gw => cap2.get(gw)?.points ?? 0),
           backgroundColor: CHART_COLORS.team2Alpha70,
           borderColor: CHART_COLORS.team2,
           borderWidth: 1,
@@ -511,21 +552,121 @@ export class CompareTeamsComponent {
   }
 
   /**
+   * Builds the formation avg-points comparison grouped bar chart.
+   * Each formation on the X axis has two bars: team 1 and team 2 avg GW points.
+   * Formations are sorted by combined avg descending so the most impactful ones appear first.
+   *
+   * @param user1 - First team's user info.
+   * @param user2 - Second team's user info.
+   */
+  private buildFormationComparisonChart(user1: UserInfo, user2: UserInfo): void {
+    const map1 = this.computeFormationAvgMap(user1);
+    const map2 = this.computeFormationAvgMap(user2);
+    const allFormations = Array.from(new Set([...map1.keys(), ...map2.keys()]));
+    allFormations.sort((a, b) => {
+      const combinedA = (map1.get(a) ?? 0) + (map2.get(a) ?? 0);
+      const combinedB = (map1.get(b) ?? 0) + (map2.get(b) ?? 0);
+      return combinedB - combinedA;
+    });
+
+    this.formationComparisonChart = {
+      labels: allFormations,
+      datasets: [
+        {
+          label: user1.teamName,
+          data: allFormations.map(formation => map1.get(formation) ?? 0),
+          backgroundColor: CHART_COLORS.primaryAlpha70,
+          borderColor: CHART_COLORS.primary,
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+        {
+          label: user2.teamName,
+          data: allFormations.map(formation => map2.get(formation) ?? 0),
+          backgroundColor: CHART_COLORS.team2Alpha70,
+          borderColor: CHART_COLORS.team2,
+          borderWidth: 1,
+          borderRadius: 3,
+        }
+      ]
+    };
+  }
+
+  /**
+   * Computes a map of formation string to average GW points for a given user.
+   *
+   * @param user - The user whose formations to aggregate.
+   * @returns A map of formation (e.g. `"4-3-3"`) to rounded average GW points.
+   */
+  private computeFormationAvgMap(user: UserInfo): Map<string, number> {
+    const pointsMap = new Map<string, number[]>();
+    for (let gw = 1; gw <= user.currentGameWeek; gw++) {
+      const formation = this.deriveFormation(user, gw);
+      if (!formation) continue;
+      if (!pointsMap.has(formation)) pointsMap.set(formation, []);
+      pointsMap.get(formation)!.push(this.computeGwPoints(user, gw));
+    }
+    const avgMap = new Map<string, number>();
+    pointsMap.forEach((points, formation) => {
+      const avg = points.reduce((sum, pts) => sum + pts, 0) / points.length;
+      avgMap.set(formation, Math.round(avg * 10) / 10);
+    });
+    return avgMap;
+  }
+
+  /**
+   * Derives the formation string (e.g. `"4-3-3"`) for a given gameweek from intended starters.
+   * Returns `null` if the outfield starter count is not exactly 10.
+   *
+   * @param user - The user whose squad to inspect.
+   * @param gameWeek - The gameweek number to derive a formation for.
+   * @returns A formation string like `"4-3-3"`, or `null` if data is incomplete.
+   */
+  private deriveFormation(user: UserInfo, gameWeek: number): string | null {
+    const count = (position: string) =>
+      user.players.filter(player => player.position === position &&
+        player.performances.some(perf => perf.gameWeek === gameWeek && perf.wasInMyTeam && !perf.wasBenched)
+      ).length;
+    const def = count(Position.DEF);
+    const mid = count(Position.MID);
+    const fwd = count(Position.FWD);
+    return def + mid + fwd === 10 ? `${def}-${mid}-${fwd}` : null;
+  }
+
+  /**
+   * Computes total team points for a single gameweek including captain multiplier and manager.
+   *
+   * @param user - The user whose points to aggregate.
+   * @param gameWeek - The gameweek number to compute.
+   * @returns Total points scored by the team that gameweek.
+   */
+  private computeGwPoints(user: UserInfo, gameWeek: number): number {
+    let total = 0;
+    user.players.forEach(player => {
+      const perf = player.performances.find(performance => performance.gameWeek === gameWeek && performance.wasInMyTeam);
+      if (!perf) return;
+      if (perf.multiplier > 0) total += perf.points * perf.multiplier;
+      if (player.position === Position.Manager && perf.wasBenched) total += perf.points;
+    });
+    return total;
+  }
+
+  /**
    * Builds a map of gameweek → effective captain points for a user,
    * accounting for the triple captain multiplier.
    *
    * @param user - The user whose captain picks to aggregate.
    * @returns A map of gameweek number to the captain's effective points that week.
    */
-  private getCaptainPointsPerGW(user: UserInfo): Map<number, number> {
-    const map = new Map<number, number>();
+  private getCaptainPointsPerGW(user: UserInfo): Map<number, { points: number; name: string }> {
+    const map = new Map<number, { points: number; name: string }>();
     for (const player of user.players) {
       for (const performance of player.performances) {
         if (performance.wasCaptain || performance.wasTripleCaptain) {
-          map.set(
-            performance.gameWeek,
-            performance.points * (performance.multiplier ?? (performance.wasTripleCaptain ? 3 : 2))
-          );
+          map.set(performance.gameWeek, {
+            points: performance.points * (performance.multiplier ?? (performance.wasTripleCaptain ? 3 : 2)),
+            name: player.name
+          });
         }
       }
     }
