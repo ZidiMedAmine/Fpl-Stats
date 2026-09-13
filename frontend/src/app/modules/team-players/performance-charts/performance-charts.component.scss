@@ -151,8 +151,13 @@
     height: 280px !important;
   }
 
-  &.formation-bar-card canvas {
-    height: 220px !important;
+}
+
+.formation-gw-card {
+  min-width: 320px;
+
+  canvas {
+    height: 300px !important;
   }
 }
 
