@@ -116,28 +116,47 @@
   margin-bottom: 16px;
 }
 
+.player-stats-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 20px 0;
+  margin-bottom: 8px;
+}
+
 .player-stats-header {
   font-size: 13px;
   font-weight: 700;
   color: var(--color-primary-dark);
   letter-spacing: 0.5px;
-  padding: 20px 20px 0;
-  margin-bottom: 12px;
 }
 
-.position-group-label {
-  font-size: 11px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  color: var(--color-text-muted);
-  padding: 12px 20px 4px;
-  border-top: 1px solid var(--color-border);
+.ownership-toggle {
+  display: flex;
+  gap: 4px;
+  background: var(--color-bg-hover);
+  border-radius: 20px;
+  padding: 3px;
 
-  &:first-of-type {
-    border-top: none;
+  button {
+    border-radius: 16px;
+    font-size: 12px;
+    font-weight: 600;
+    height: 28px;
+    line-height: 28px;
+    padding: 0 14px;
+    min-width: unset;
+    color: var(--color-text-muted);
+    transition: background 0.15s, color 0.15s;
+
+    &.active {
+      background: #fff;
+      color: var(--color-primary-dark);
+      box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    }
   }
 }
+
 
 .table-container {
   overflow: auto;

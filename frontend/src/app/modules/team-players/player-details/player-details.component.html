@@ -88,7 +88,6 @@
               [class.captain-points]="perf.wasCaptain"
               [class.benched-points]="perf.wasBenched">
             <span class="points-value">{{ calculatePoints(perf) }}</span>
-            <span *ngIf="perf.wasBenched && data.player.position !== Position.Manager" class="bench-badge">B</span>
           </td>
         </ng-container>
 

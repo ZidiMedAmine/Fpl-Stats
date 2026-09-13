@@ -150,6 +150,10 @@
     width: 100% !important;
     height: 280px !important;
   }
+
+  &.formation-bar-card canvas {
+    height: 220px !important;
+  }
 }
 
 .doughnut-title {
