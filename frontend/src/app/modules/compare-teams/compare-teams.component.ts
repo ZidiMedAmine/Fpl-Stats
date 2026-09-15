@@ -23,6 +23,8 @@ interface ChipEvent {
   playerPoints?: number;
 }
 
+const POSITION_ORDER: Record<string, number> = { GKP: 0, DEF: 1, MID: 2, FWD: 3 };
+
 const CHIP_LABELS: Record<string, string> = {
   wc: 'Wildcard',
   fh: 'Free Hit',
@@ -260,6 +262,8 @@ export class CompareTeamsComponent {
    */
   private onCompareLoaded(compareResult: CompareResult, user1: UserInfo, user2: UserInfo): void {
     this.result = compareResult;
+    this.result.team1Differentials.sort((a, b) => (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99));
+    this.result.team2Differentials.sort((a, b) => (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99));
     this.gameWeeks = Object.keys(compareResult.pointsByGameWeek)
       .map(Number)
       .sort((a, b) => a - b);

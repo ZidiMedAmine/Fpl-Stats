@@ -4,6 +4,12 @@
 
 ---
 
+## Git Rules
+
+- **Never commit or push automatically.** Only run `git commit` or `git push` when the user explicitly asks for it.
+
+---
+
 ## Project Stack
 
 | Tool | Version |

@@ -75,6 +75,40 @@ export class PerformanceChartsComponent implements OnChanges {
     },
   };
 
+  captainLineOptions: ChartConfiguration<'line'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { color: 'transparent', boxWidth: 0 } },
+      datalabels: {
+        anchor: 'end',
+        align: 'top',
+        offset: 4,
+        font: { size: 10 }
+      },
+      tooltip: {
+        callbacks: {
+          title: (items) => {
+            const index = items[0]?.dataIndex ?? -1;
+            const captainName = this.captainNamesByGw[index] ?? '';
+            return captainName ? `${items[0].label} · ${captainName}` : items[0].label;
+          }
+        }
+      }
+    },
+    scales: {
+      x: {
+        ticks: {
+          callback: (_tickValue, index) => {
+            const captainName = this.captainNamesByGw[index] ?? '';
+            const surname = captainName ? (captainName.split(' ').pop() ?? '') : '';
+            return surname ? [`GW${index + 1}`, surname] : `GW${index + 1}`;
+          }
+        }
+      }
+    }
+  };
+
   teamValueOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
@@ -439,6 +473,7 @@ export class PerformanceChartsComponent implements OnChanges {
   topCaptain = '';
   topCaptainCount = 0;
   topCaptainPhoto = 0;
+  captainNamesByGw: string[] = [];
   totalBenchWasted = 0;
   benchWastedWeeks = 0;
   bestGWScore = 0;
@@ -687,9 +722,19 @@ export class PerformanceChartsComponent implements OnChanges {
     const captainPoints = new Array(gameWeekCount).fill(0);
     const benchPoints   = new Array(gameWeekCount).fill(0);
 
-    this.user.players.forEach(player =>
-      this.accumulatePlayerPoints(player, totalPoints, captainPoints, benchPoints, gameWeekCount)
-    );
+    const captainNamesByGw: string[] = new Array(gameWeekCount).fill('');
+    this.user.players.forEach(player => {
+      if (player.position !== Position.Manager) {
+        player.performances.forEach(performance => {
+          const index = performance.gameWeek - 1;
+          if (index >= 0 && index < gameWeekCount && performance.wasCaptain && performance.wasInMyTeam) {
+            captainNamesByGw[index] = player.name;
+          }
+        });
+      }
+      this.accumulatePlayerPoints(player, totalPoints, captainPoints, benchPoints, gameWeekCount);
+    });
+    this.captainNamesByGw = captainNamesByGw;
 
     const averages = Array.from({ length: gameWeekCount }, (_, index) =>
       this.user.gameWeekAverages?.[index + 1] ?? null

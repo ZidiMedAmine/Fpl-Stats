@@ -83,7 +83,7 @@
   <div *ngIf="activeChart === 'captain'">
     <div class="doughnut-title">Captain Points</div>
     <div class="chart-container">
-      <canvas baseChart [data]="captainPointsChart" [options]="singleLineOptions" [type]="'line'"></canvas>
+      <canvas baseChart [data]="captainPointsChart" [options]="captainLineOptions" [type]="'line'"></canvas>
     </div>
   </div>
 
