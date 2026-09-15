@@ -104,8 +104,8 @@ public class GameWeekSyncService {
         gameWeek.setName((String) gwData.get("name"));
         gameWeek.setIsCurrent(gwNumber == currentGwNumber);
         gameWeek.setNext(gwNumber == currentGwNumber + 1);
-        gameWeek.setPrevious(gwNumber == currentGwNumber - 1);
-        gameWeek.setFinished(completedGwNumbers.contains(gwNumber));
+        gameWeek.setIsPrevious(gwNumber == currentGwNumber - 1);
+        gameWeek.setIsFinished(completedGwNumbers.contains(gwNumber));
 
         Object deadlineTime = gwData.get("deadline_time");
         if (deadlineTime instanceof String deadlineStr) {

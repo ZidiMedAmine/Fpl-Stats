@@ -1,8 +1,10 @@
 package com.fpl.stats.services.impl;
 
+import com.fpl.stats.domain.GameWeek;
 import com.fpl.stats.domain.Player;
 import com.fpl.stats.domain.TrackedTeam;
 import com.fpl.stats.domain.UserTeam;
+import com.fpl.stats.repository.GameWeekRepository;
 import com.fpl.stats.repository.TrackedTeamRepository;
 import com.fpl.stats.repository.UserPickRepository;
 import com.fpl.stats.repository.UserTeamRepository;
@@ -32,11 +34,11 @@ public class UserSyncServiceImpl implements UserSyncService {
 
     private final PlayerHistorySyncService playerHistorySyncService;
     private final TrackedTeamRepository trackedTeamRepository;
-    private final UserTeamRepository userTeamRepository;
-    private final FixtureDataService fixtureDataService;
     private final UserTeamSyncService userTeamSyncService;
     private final UserPickSyncService userPickSyncService;
+    private final UserTeamRepository userTeamRepository;
     private final UserPickRepository userPickRepository;
+    private final GameWeekRepository gameWeekRepository;
 
     /**
      * Constructs a {@code UserSyncServiceImpl} with its required dependencies.
@@ -51,18 +53,18 @@ public class UserSyncServiceImpl implements UserSyncService {
      */
     public UserSyncServiceImpl(PlayerHistorySyncService playerHistorySyncService,
                                TrackedTeamRepository trackedTeamRepository,
-                               UserTeamRepository userTeamRepository,
-                               FixtureDataService fixtureDataService,
                                UserTeamSyncService userTeamSyncService,
                                UserPickSyncService userPickSyncService,
-                               UserPickRepository userPickRepository) {
+                               UserTeamRepository userTeamRepository,
+                               UserPickRepository userPickRepository,
+                               GameWeekRepository gameWeekRepository) {
         this.playerHistorySyncService = playerHistorySyncService;
         this.trackedTeamRepository = trackedTeamRepository;
-        this.userTeamRepository = userTeamRepository;
-        this.fixtureDataService = fixtureDataService;
         this.userTeamSyncService = userTeamSyncService;
         this.userPickSyncService = userPickSyncService;
+        this.userTeamRepository = userTeamRepository;
         this.userPickRepository = userPickRepository;
+        this.gameWeekRepository = gameWeekRepository;
     }
 
     /**
@@ -72,7 +74,9 @@ public class UserSyncServiceImpl implements UserSyncService {
     public void syncUser(long fplTeamId) {
         TrackedTeam trackedTeam = registerForTracking(fplTeamId);
 
-        int lastCompleted = fixtureDataService.getLastCompletedGameWeek();
+        int lastCompleted = gameWeekRepository.findByIsPreviousTrue()
+                .map(GameWeek::getGameWeekNumber)
+                .orElse(0);
 
         if (isAlreadySyncedForLastCompleted(fplTeamId, lastCompleted)) {
             log.info("Skipping sync for team {} — already synced for GW{}", fplTeamId, lastCompleted);
@@ -80,7 +84,7 @@ public class UserSyncServiceImpl implements UserSyncService {
         }
 
         UserTeam syncedTeam = userTeamSyncService.syncUserTeam(fplTeamId);
-        userPickSyncService.syncUserPicks(syncedTeam);
+        userPickSyncService.syncUserPicks(syncedTeam, lastCompleted);
 
         List<Player> teamPlayers = userPickRepository.findDistinctPlayersByUserTeam(syncedTeam);
         playerHistorySyncService.syncPlayerHistoryForPlayers(teamPlayers);

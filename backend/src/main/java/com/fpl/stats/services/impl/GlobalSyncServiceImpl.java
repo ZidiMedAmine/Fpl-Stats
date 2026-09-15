@@ -2,6 +2,7 @@ package com.fpl.stats.services.impl;
 
 import com.fpl.stats.domain.Team;
 import com.fpl.stats.services.fpl.BootstrapDataService;
+import com.fpl.stats.services.fpl.BootstrapDataService.BootstrapSnapshot;
 import com.fpl.stats.services.fpl.FixtureDataService;
 import com.fpl.stats.services.fpl.sync.GameWeekSyncService;
 import com.fpl.stats.services.fpl.sync.GlobalSyncService;
@@ -50,14 +51,11 @@ public class GlobalSyncServiceImpl implements GlobalSyncService {
      */
     @Override
     public void syncGlobalData() {
-        List<Map<String, Object>> gameWeeksData = bootstrapDataService.getGameWeeks();
-        List<Map<String, Object>> playersData = bootstrapDataService.getPlayers();
+        BootstrapSnapshot bootstrap = bootstrapDataService.getBootstrapSnapshot();
         List<Map<String, Object>> fixturesData = fixtureDataService.getFixtures();
-        Map<Integer, String> positionMap = bootstrapDataService.getPositionMap();
-        List<Map<String, Object>> teamsData = bootstrapDataService.getTeams();
 
-        Map<Integer, Team> teamMap = teamSyncService.syncTeams(teamsData);
-        gameWeekSyncService.syncGameWeeks(gameWeeksData, fixturesData);
-        playerSyncService.syncPlayers(playersData, teamMap, positionMap);
+        Map<Integer, Team> teamMap = teamSyncService.syncTeams(bootstrap.teams());
+        gameWeekSyncService.syncGameWeeks(bootstrap.gameWeeks(), fixturesData);
+        playerSyncService.syncPlayers(bootstrap.players(), teamMap, bootstrap.positionMap());
     }
 }

@@ -105,6 +105,12 @@ fix: resolve null pointer in pick sync
 refactor: simplify bootstrap data caching
 ```
 
+## Git Rules
+
+- **Never commit or push automatically.** Only run `git commit` or `git push` when the user explicitly asks for it.
+
+---
+
 ## Testing
 
 - Every new feature must include tests for the main success scenario and important failure cases

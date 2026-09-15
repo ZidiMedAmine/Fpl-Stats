@@ -73,22 +73,9 @@ public final class PlayerMapper {
             return null;
         }
         PlayerDto playerDto = new PlayerDto();
-        playerDto.setFplId(player.getFplId());
-        playerDto.setName(player.getWebName());
-        playerDto.setPosition(player.getPosition());
-        playerDto.setCode(player.getCode());
-        playerDto.setNowCost(player.getNowCost());
-        playerDto.setStatus(player.getStatus());
+        mapPlayerDtoBaseFields(player, playerDto);
 
-        if (player.getTeam() != null) {
-            playerDto.setTeamName(player.getTeam().getShortName());
-        }
-
-        Map<Integer, PlayerHistory> historyByGw = player.getPlayerHistories().stream()
-                .collect(Collectors.toMap(
-                        ph -> ph.getGameWeek().getGameWeekNumber(),
-                        ph -> ph,
-                        (a, b) -> a));
+        Map<Integer, PlayerHistory> historyByGw = buildHistoryByGwMap(player);
 
         List<GameWeekPerformance> performances = new ArrayList<>();
         int totalPoints = 0;
@@ -96,66 +83,80 @@ public final class PlayerMapper {
         int activeGwCount = 0;
 
         for (UserPick pick : playerPicks) {
-            int gwNumber = pick.getGameWeek().getGameWeekNumber();
-            PlayerHistory history = historyByGw.get(gwNumber);
+            PlayerHistory history = historyByGw.get(pick.getGameWeek().getGameWeekNumber());
+            performances.add(buildPerformanceFromPick(pick, history));
 
-            GameWeekPerformance.Builder builder = new GameWeekPerformance.Builder()
-                    .gameWeek(gwNumber)
-                    .wasInMyTeam(true)
-                    .wasCaptain(pick.isCaptain())
-                    .wasViceCaptain(pick.isViceCaptain())
-                    .wasTripleCaptain(pick.isTripleCaptain())
-                    .wasBenched(pick.isBenched())
-                    .multiplier(pick.getMultiplier());
-
-            if (history != null) {
-                int gwPoints = history.getPoints();
-                if (pick.getMultiplier() > 0) {
-                    totalPoints += gwPoints * pick.getMultiplier();
-                    if (history.getMinutesPlayed() > 0) {
-                        int effectiveMultiplier = Math.min(pick.getMultiplier(), 2);
-                        avgPointsTotal += gwPoints * effectiveMultiplier;
-                        activeGwCount++;
-                    }
+            if (history != null && pick.getMultiplier() > 0) {
+                totalPoints += history.getPoints() * pick.getMultiplier();
+                if (history.getMinutesPlayed() > 0) {
+                    avgPointsTotal += history.getPoints() * Math.min(pick.getMultiplier(), 2);
+                    activeGwCount++;
                 }
-                builder.points(gwPoints)
-                        .minutesPlayed(history.getMinutesPlayed())
-                        .goalsScored(history.getGoalsScored())
-                        .assists(history.getAssists())
-                        .cleanSheet(history.getCleanSheets() > 0)
-                        .yellowCards(history.getYellowCards())
-                        .redCards(history.getRedCards())
-                        .bonusPoints(history.getBonus())
-                        .bps(history.getBps())
-                        .saves(history.getSaves())
-                        .expectedGoals(history.getExpectedGoals())
-                        .expectedAssists(history.getExpectedAssists())
-                        .expectedGoalInvolvements(history.getExpectedGoalInvolvements())
-                        .goalsConceded(history.getGoalsConceded())
-                        .expectedGoalsConceded(history.getExpectedGoalsConceded())
-                        .clearancesBlocksInterceptions(history.getClearancesBlocksInterceptions())
-                        .recoveries(history.getRecoveries())
-                        .tackles(history.getTackles())
-                        .defensiveContribution(history.getDefensiveContribution())
-                        .influence(history.getInfluence())
-                        .creativity(history.getCreativity())
-                        .threat(history.getThreat())
-                        .ictIndex(history.getIctIndex())
-                        .wasHome(history.isWasHome())
-                        .value(history.getValue())
-                        .transfersIn(history.getTransfersIn())
-                        .transfersOut(history.getTransfersOut())
-                        .transfersBalance(history.getTransfersBalance())
-                        .selected(history.getSelected());
             }
-
-            performances.add(builder.build());
         }
 
         playerDto.setPerformances(performances);
         playerDto.setTotalPointsForTeam(totalPoints);
         playerDto.setAvgPoints(activeGwCount == 0 ? 0 : (double) avgPointsTotal / activeGwCount);
         return playerDto;
+    }
+
+    /**
+     * Maps the base fields from a {@link Player} onto a {@link PlayerDto}.
+     *
+     * @param player    the source player entity
+     * @param playerDto the target DTO to populate
+     */
+    private static void mapPlayerDtoBaseFields(Player player, PlayerDto playerDto) {
+        playerDto.setFplId(player.getFplId());
+        playerDto.setName(player.getWebName());
+        playerDto.setPosition(player.getPosition());
+        playerDto.setCode(player.getCode());
+        playerDto.setNowCost(player.getNowCost());
+        playerDto.setStatus(player.getStatus());
+        if (player.getTeam() != null) {
+            playerDto.setTeamName(player.getTeam().getShortName());
+        }
+    }
+
+    /**
+     * Builds a gameweek-number → {@link PlayerHistory} lookup map from the player's histories.
+     * When duplicate entries exist for the same gameweek the first one wins.
+     *
+     * @param player the player entity with histories loaded
+     * @return map keyed by gameweek number
+     */
+    private static Map<Integer, PlayerHistory> buildHistoryByGwMap(Player player) {
+        return player.getPlayerHistories().stream()
+                .collect(Collectors.toMap(
+                        ph -> ph.getGameWeek().getGameWeekNumber(),
+                        ph -> ph,
+                        (a, b) -> a));
+    }
+
+    /**
+     * Builds a {@link GameWeekPerformance} from a user pick and the matching player history.
+     * Pick context (captain, benched, multiplier) is always applied; history stats are applied
+     * only when a matching history entry exists.
+     *
+     * @param pick    the user pick for the gameweek
+     * @param history the player's history for that gameweek, or {@code null} if unavailable
+     * @return the assembled gameweek performance
+     */
+    private static GameWeekPerformance buildPerformanceFromPick(UserPick pick, PlayerHistory history) {
+        GameWeekPerformance.Builder builder = new GameWeekPerformance.Builder()
+                .gameWeek(pick.getGameWeek().getGameWeekNumber())
+                .wasInMyTeam(true)
+                .wasCaptain(pick.isCaptain())
+                .wasViceCaptain(pick.isViceCaptain())
+                .wasTripleCaptain(pick.isTripleCaptain())
+                .wasBenched(pick.isBenched())
+                .multiplier(pick.getMultiplier());
+
+        if (history != null) {
+            applyHistoryToBuilder(history, builder);
+        }
+        return builder.build();
     }
 
     /**
@@ -206,9 +207,26 @@ public final class PlayerMapper {
      * @return a gameweek performance with stats only, no pick context
      */
     private static GameWeekPerformance toGwPerformance(PlayerHistory history) {
-        return new GameWeekPerformance.Builder()
+        GameWeekPerformance.Builder builder = new GameWeekPerformance.Builder()
                 .gameWeek(history.getGameWeek().getGameWeekNumber())
-                .points(history.getPoints())
+                .wasInMyTeam(false)
+                .wasCaptain(false)
+                .wasViceCaptain(false)
+                .wasTripleCaptain(false)
+                .wasBenched(false);
+        applyHistoryToBuilder(history, builder);
+        return builder.build();
+    }
+
+    /**
+     * Applies all stat fields from a {@link PlayerHistory} onto a {@link GameWeekPerformance.Builder}.
+     * Shared by {@link #toGwPerformance} and {@link #buildPerformanceFromPick}.
+     *
+     * @param history the source history entry
+     * @param builder the builder to populate
+     */
+    private static void applyHistoryToBuilder(PlayerHistory history, GameWeekPerformance.Builder builder) {
+        builder.points(history.getPoints())
                 .minutesPlayed(history.getMinutesPlayed())
                 .goalsScored(history.getGoalsScored())
                 .assists(history.getAssists())
@@ -236,12 +254,6 @@ public final class PlayerMapper {
                 .transfersIn(history.getTransfersIn())
                 .transfersOut(history.getTransfersOut())
                 .transfersBalance(history.getTransfersBalance())
-                .selected(history.getSelected())
-                .wasInMyTeam(false)
-                .wasCaptain(false)
-                .wasViceCaptain(false)
-                .wasTripleCaptain(false)
-                .wasBenched(false)
-                .build();
+                .selected(history.getSelected());
     }
 }
