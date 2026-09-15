@@ -72,6 +72,7 @@ public class UserInfoServiceImpl implements UserInfoService {
      */
     @Override
     public UserTeamDto getUserTeamInfo(long fplTeamId) {
+        log.debug("Fetching team info for fplTeamId={}", fplTeamId);
         UserTeam userTeam = userTeamRepository.findByFplTeamId(fplTeamId)
                 .orElseThrow(() -> new TeamNotFoundException(fplTeamId));
         return buildUserTeamDto(userTeam);
@@ -82,6 +83,7 @@ public class UserInfoServiceImpl implements UserInfoService {
      */
     @Override
     public CompareDto compareTeams(long fplTeamId1, long fplTeamId2) {
+        log.debug("Comparing teams fplTeamId1={} and fplTeamId2={}", fplTeamId1, fplTeamId2);
         UserTeam userTeam1 = userTeamRepository.findByFplTeamId(fplTeamId1)
                 .orElseThrow(() -> new TeamNotFoundException(fplTeamId1));
         UserTeam userTeam2 = userTeamRepository.findByFplTeamId(fplTeamId2)

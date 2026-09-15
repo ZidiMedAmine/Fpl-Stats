@@ -1,11 +1,12 @@
 package com.fpl.stats.services.impl;
 
+import com.fpl.stats.domain.GameWeek;
 import com.fpl.stats.domain.TrackedTeam;
 import com.fpl.stats.domain.UserTeam;
+import com.fpl.stats.repository.GameWeekRepository;
 import com.fpl.stats.repository.TrackedTeamRepository;
 import com.fpl.stats.repository.UserPickRepository;
 import com.fpl.stats.repository.UserTeamRepository;
-import com.fpl.stats.services.fpl.FixtureDataService;
 import com.fpl.stats.services.fpl.sync.PlayerHistorySyncService;
 import com.fpl.stats.services.fpl.sync.UserPickSyncService;
 import com.fpl.stats.services.fpl.sync.UserTeamSyncService;
@@ -28,11 +29,11 @@ class UserSyncServiceImplTest {
 
     @Mock private PlayerHistorySyncService playerHistorySyncService;
     @Mock private TrackedTeamRepository trackedTeamRepository;
-    @Mock private UserTeamRepository userTeamRepository;
-    @Mock private FixtureDataService fixtureDataService;
     @Mock private UserTeamSyncService userTeamSyncService;
     @Mock private UserPickSyncService userPickSyncService;
+    @Mock private UserTeamRepository userTeamRepository;
     @Mock private UserPickRepository userPickRepository;
+    @Mock private GameWeekRepository gameWeekRepository;
 
     private UserSyncServiceImpl userSyncService;
 
@@ -44,11 +45,11 @@ class UserSyncServiceImplTest {
         userSyncService = new UserSyncServiceImpl(
                 playerHistorySyncService,
                 trackedTeamRepository,
-                userTeamRepository,
-                fixtureDataService,
                 userTeamSyncService,
                 userPickSyncService,
-                userPickRepository
+                userTeamRepository,
+                userPickRepository,
+                gameWeekRepository
         );
     }
 
@@ -64,7 +65,7 @@ class UserSyncServiceImplTest {
 
         when(trackedTeamRepository.findByFplTeamId(fplTeamId)).thenReturn(Optional.of(trackedTeam));
         when(userTeamRepository.findByFplTeamId(fplTeamId)).thenReturn(Optional.of(userTeam));
-        when(fixtureDataService.getLastCompletedGameWeek()).thenReturn(3);
+        when(gameWeekRepository.findByIsPreviousTrue()).thenReturn(Optional.of(gameWeek(3)));
 
         userSyncService.syncUser(fplTeamId);
 
@@ -83,15 +84,19 @@ class UserSyncServiceImplTest {
 
         when(trackedTeamRepository.findByFplTeamId(fplTeamId)).thenReturn(Optional.of(trackedTeam));
         when(userTeamRepository.findByFplTeamId(fplTeamId)).thenReturn(Optional.of(userTeamWithLastSyncedGw(fplTeamId, 3)));
-        when(fixtureDataService.getLastCompletedGameWeek()).thenReturn(4);
+        when(gameWeekRepository.findByIsPreviousTrue()).thenReturn(Optional.of(gameWeek(4)));
         when(userTeamSyncService.syncUserTeam(fplTeamId)).thenReturn(syncedTeam);
         when(userPickRepository.findDistinctPlayersByUserTeam(syncedTeam)).thenReturn(List.of());
 
         userSyncService.syncUser(fplTeamId);
 
         verify(userTeamSyncService).syncUserTeam(fplTeamId);
-        verify(userPickSyncService).syncUserPicks(syncedTeam);
+        verify(userPickSyncService).syncUserPicks(syncedTeam, 4);
     }
+
+    // -------------------------------------------------------------------------
+    // Helpers
+    // -------------------------------------------------------------------------
 
     private TrackedTeam trackedTeamWithId(long fplTeamId) {
         TrackedTeam trackedTeam = new TrackedTeam();
@@ -104,5 +109,17 @@ class UserSyncServiceImplTest {
         userTeam.setFplTeamId(fplTeamId);
         userTeam.setLastSyncedGameWeek(lastSyncedGameWeek);
         return userTeam;
+    }
+
+    /**
+     * Creates a {@link GameWeek} entity for the given number.
+     *
+     * @param number the gameweek number
+     * @return a gameweek entity
+     */
+    private GameWeek gameWeek(int number) {
+        GameWeek gw = new GameWeek();
+        gw.setGameWeekNumber(number);
+        return gw;
     }
 }

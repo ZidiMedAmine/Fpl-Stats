@@ -19,6 +19,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * Synchronizes a user's gameweek picks from the FPL picks endpoint.
@@ -67,9 +68,8 @@ public class UserPickSyncService {
      *
      * @param userTeam the user team whose picks should be synced
      */
-    public void syncUserPicks(UserTeam userTeam) {
+    public void syncUserPicks(UserTeam userTeam, int lastCompleted) {
         int startGw = resolveStartGw(userTeam);
-        int lastCompleted = fixtureDataService.getLastCompletedGameWeek();
 
         if (startGw > lastCompleted) {
             log.info("No new gameWeeks to sync for team {}", userTeam.getFplTeamId());
@@ -114,6 +114,7 @@ public class UserPickSyncService {
     /**
      * Collects all picks for gameweeks in the range [{@code startGw}, {@code lastCompleted}].
      * Skips a gameweek silently if the API call fails or the gameweek is not found in the database.
+     * Gameweeks are pre-loaded into a map to avoid one query per iteration.
      *
      * @param userTeam           the user team whose picks are being fetched
      * @param startGw            the first gameweek to fetch (inclusive)
@@ -123,13 +124,16 @@ public class UserPickSyncService {
      */
     private List<UserPick> collectPicksForRange(UserTeam userTeam, int startGw, int lastCompleted,
                                                 Optional<Integer> tripleCaptainWeek) {
+        Map<Integer, GameWeek> gameWeekMap = gameWeekRepository.findByGameWeekNumberBetween(startGw, lastCompleted).stream()
+                .collect(Collectors.toMap(GameWeek::getGameWeekNumber, gw -> gw));
+
         List<UserPick> allPicks = new ArrayList<>();
         for (int gw = startGw; gw <= lastCompleted; gw++) {
             try {
                 List<Map<String, Object>> picksData = fetchTeamPicks(userTeam.getFplTeamId(), gw);
                 if (picksData == null) continue;
 
-                GameWeek gameWeek = gameWeekRepository.findByGameWeekNumber(gw).orElse(null);
+                GameWeek gameWeek = gameWeekMap.get(gw);
                 if (gameWeek == null) continue;
 
                 boolean isTripleCaptainGw = tripleCaptainWeek.isPresent() && tripleCaptainWeek.get() == gw;

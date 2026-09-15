@@ -19,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
@@ -64,15 +63,13 @@ class UserPickSyncServiceTest {
     @Test
     void shouldSavePicksForAllGwsInSyncRange() {
         UserTeam userTeam = userTeamWithState(0, 1);
-        when(fixtureDataService.getLastCompletedGameWeek()).thenReturn(2);
         stubNoChips();
         stubPicksApi(1, List.of(pickData(PLAYER_FPL_ID, 1, 1, false, false)));
         stubPicksApi(2, List.of(pickData(PLAYER_FPL_ID, 2, 1, false, false)));
-        when(gameWeekRepository.findByGameWeekNumber(1)).thenReturn(Optional.of(gameWeek(1)));
-        when(gameWeekRepository.findByGameWeekNumber(2)).thenReturn(Optional.of(gameWeek(2)));
+        when(gameWeekRepository.findByGameWeekNumberBetween(1, 2)).thenReturn(List.of(gameWeek(1), gameWeek(2)));
         when(playerRepository.findByFplId(PLAYER_FPL_ID)).thenReturn(Optional.of(player()));
 
-        userPickSyncService.syncUserPicks(userTeam);
+        userPickSyncService.syncUserPicks(userTeam, 2);
 
         ArgumentCaptor<List<UserPick>> captor = ArgumentCaptor.captor();
         verify(userPickRepository).saveAll(captor.capture());
@@ -86,9 +83,8 @@ class UserPickSyncServiceTest {
     @Test
     void shouldReturnEarlyAndUpdateLastSyncedGwWhenAlreadyUpToDate() {
         UserTeam userTeam = userTeamWithState(3, 1);
-        when(fixtureDataService.getLastCompletedGameWeek()).thenReturn(3);
 
-        userPickSyncService.syncUserPicks(userTeam);
+        userPickSyncService.syncUserPicks(userTeam, 3);
 
         verify(userPickRepository, never()).saveAll(any());
         verify(userTeamRepository).save(userTeam);
@@ -102,13 +98,12 @@ class UserPickSyncServiceTest {
     @Test
     void shouldMarkCaptainAsTripleCaptainWhenChipActiveInThatGw() {
         UserTeam userTeam = userTeamWithState(0, 1);
-        when(fixtureDataService.getLastCompletedGameWeek()).thenReturn(1);
         stubChips(List.of(Map.of("name", "3xc", "event", 1)));
         stubPicksApi(1, List.of(pickData(PLAYER_FPL_ID, 1, 3, true, false)));
-        when(gameWeekRepository.findByGameWeekNumber(1)).thenReturn(Optional.of(gameWeek(1)));
+        when(gameWeekRepository.findByGameWeekNumberBetween(1, 1)).thenReturn(List.of(gameWeek(1)));
         when(playerRepository.findByFplId(PLAYER_FPL_ID)).thenReturn(Optional.of(player()));
 
-        userPickSyncService.syncUserPicks(userTeam);
+        userPickSyncService.syncUserPicks(userTeam, 1);
 
         ArgumentCaptor<List<UserPick>> captor = ArgumentCaptor.captor();
         verify(userPickRepository).saveAll(captor.capture());

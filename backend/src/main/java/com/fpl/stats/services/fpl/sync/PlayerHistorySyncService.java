@@ -6,7 +6,6 @@ import com.fpl.stats.domain.PlayerHistory;
 import com.fpl.stats.repository.GameWeekRepository;
 import com.fpl.stats.repository.PlayerHistoryRepository;
 import com.fpl.stats.repository.PlayerRepository;
-import com.fpl.stats.services.fpl.FixtureDataService;
 import com.fpl.stats.services.util.FplApiClient;
 import jakarta.annotation.PreDestroy;
 import org.slf4j.Logger;
@@ -16,6 +15,7 @@ import org.springframework.stereotype.Service;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -32,12 +32,11 @@ public class PlayerHistorySyncService {
     private static final int BATCH_SIZE = 50;
     private static final int THREAD_POOL_SIZE = 10;
 
-    private final FplApiClient fplApiClient;
-    private final PlayerRepository playerRepository;
     private final PlayerHistoryRepository playerHistoryRepository;
     private final GameWeekRepository gameWeekRepository;
-    private final FixtureDataService fixtureDataService;
     private final ExecutorService historyFetchExecutor;
+    private final PlayerRepository playerRepository;
+    private final FplApiClient fplApiClient;
 
     /**
      * Constructs a {@code PlayerHistorySyncService} and initialises the shared thread pool
@@ -46,20 +45,18 @@ public class PlayerHistorySyncService {
      * @param fplApiClient             used to fetch per-player history from element-summary
      * @param playerRepository         provides the list of players to sync
      * @param playerHistoryRepository  persists and checks existing history records
-     * @param gameWeekRepository       resolves gameweek entities by number
-     * @param fixtureDataService       used to derive the last truly completed gameweek
+     * @param gameWeekRepository       resolves and loads gameweek entities
      */
-    public PlayerHistorySyncService(FplApiClient fplApiClient,
-                                    PlayerRepository playerRepository,
-                                    PlayerHistoryRepository playerHistoryRepository,
-                                    GameWeekRepository gameWeekRepository,
-                                    FixtureDataService fixtureDataService) {
-        this.fplApiClient = fplApiClient;
-        this.playerRepository = playerRepository;
+    public PlayerHistorySyncService(
+            PlayerHistoryRepository playerHistoryRepository,
+            GameWeekRepository gameWeekRepository,
+            PlayerRepository playerRepository,
+            FplApiClient fplApiClient) {
+        this.historyFetchExecutor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
         this.playerHistoryRepository = playerHistoryRepository;
         this.gameWeekRepository = gameWeekRepository;
-        this.fixtureDataService = fixtureDataService;
-        this.historyFetchExecutor = Executors.newFixedThreadPool(THREAD_POOL_SIZE);
+        this.playerRepository = playerRepository;
+        this.fplApiClient = fplApiClient;
     }
 
     /**
@@ -86,13 +83,18 @@ public class PlayerHistorySyncService {
      * @param players the players whose history should be synced
      */
     public void syncPlayerHistoryForPlayers(List<Player> players) {
-        int lastCompleted = fixtureDataService.getLastCompletedGameWeek();
+        List<GameWeek> allGameWeeks = gameWeekRepository.findAll();
+        int lastCompleted = allGameWeeks.stream()
+                .filter(GameWeek::getIsPrevious)
+                .mapToInt(GameWeek::getGameWeekNumber)
+                .findFirst()
+                .orElse(0);
         if (lastCompleted == 0) {
             log.info("No completed gameweeks -- skipping player history sync");
             return;
         }
 
-        Map<Integer, GameWeek> gameWeekMap = gameWeekRepository.findAll().stream()
+        Map<Integer, GameWeek> gameWeekMap = allGameWeeks.stream()
                 .collect(Collectors.toMap(GameWeek::getGameWeekNumber, gw -> gw));
 
         log.info("Syncing history for {} players up to GW{}", players.size(), lastCompleted);
@@ -122,6 +124,7 @@ public class PlayerHistorySyncService {
     /**
      * Fetches and maps the gameweek history for a single player from the FPL element-summary endpoint.
      * Skips gameweeks beyond {@code lastCompleted} and entries that already exist in the database.
+     * Existing gameweeks are loaded in a single batch query to avoid N+1 per history entry.
      *
      * @param player        the player whose history to fetch
      * @param gameWeekMap   lookup map of gameweek number to {@link GameWeek} entity
@@ -140,17 +143,13 @@ public class PlayerHistorySyncService {
 
             if (historyList == null) return List.of();
 
+            Set<Integer> existingGwNumbers = playerHistoryRepository.findExistingGameWeekNumbersByPlayer(player);
+
             List<PlayerHistory> histories = new ArrayList<>();
             for (Map<String, Object> historyData : historyList) {
                 int gwNumber = ((Number) historyData.get("round")).intValue();
-                if (gwNumber > lastCompleted) continue;
-
                 GameWeek gameWeek = gameWeekMap.get(gwNumber);
-                if (gameWeek == null) continue;
-
-                if (playerHistoryRepository.existsByPlayerAndGameWeek(player, gameWeek)) {
-                    continue;
-                }
+                if (gwNumber > lastCompleted || gameWeek == null || existingGwNumbers.contains(gwNumber)) continue;
 
                 PlayerHistory playerHistory = new PlayerHistory();
                 mapHistoryFields(playerHistory, historyData, player, gameWeek);

@@ -21,6 +21,22 @@ import java.util.OptionalInt;
 @Service
 public class BootstrapDataService {
 
+    /**
+     * Immutable snapshot of all data sections extracted from a single bootstrap-static response.
+     * Use this in orchestration services to avoid multiple cache-proxy round-trips.
+     *
+     * @param players     raw element list (FPL players)
+     * @param teams       raw team list
+     * @param gameWeeks   raw events list (gameweeks)
+     * @param positionMap element_type ID → position abbreviation (GKP, DEF, MID, FWD)
+     */
+    public record BootstrapSnapshot(
+            List<Map<String, Object>> players,
+            List<Map<String, Object>> teams,
+            List<Map<String, Object>> gameWeeks,
+            Map<Integer, String> positionMap
+    ) {}
+
     private static final Logger log = LoggerFactory.getLogger(BootstrapDataService.class);
     private static final String BOOTSTRAP_ENDPOINT = "/bootstrap-static/";
 
@@ -139,6 +155,42 @@ public class BootstrapDataService {
             int typeId = ((Number) et.get("id")).intValue();
             String singularName = (String) et.get("singular_name_short");
             positionMap.put(typeId, singularName);
+        }
+        return Collections.unmodifiableMap(positionMap);
+    }
+
+    /**
+     * Returns a {@link BootstrapSnapshot} built from a single call to {@link #getBootstrapData()}.
+     * Use this in orchestration services (e.g. global sync) instead of calling
+     * {@link #getPlayers()}, {@link #getTeams()}, {@link #getGameWeeks()}, and
+     * {@link #getPositionMap()} separately — each of those would otherwise trigger
+     * an individual cache-proxy round-trip.
+     *
+     * @return an immutable snapshot of all sections needed for a global sync
+     */
+    @SuppressWarnings("unchecked")
+    public BootstrapSnapshot getBootstrapSnapshot() {
+        Map<String, Object> data = getBootstrapData();
+        List<Map<String, Object>> elementTypes = (List<Map<String, Object>>) data.get("element_types");
+        return new BootstrapSnapshot(
+                (List<Map<String, Object>>) data.get("elements"),
+                (List<Map<String, Object>>) data.get("teams"),
+                (List<Map<String, Object>>) data.get("events"),
+                buildPositionMap(elementTypes)
+        );
+    }
+
+    /**
+     * Builds a position map from a list of element-type entries.
+     * Extracted to avoid duplicating the loop logic from {@link #getPositionMap()}.
+     *
+     * @param elementTypes raw element_types list from bootstrap-static
+     * @return unmodifiable map of element_type ID to position abbreviation
+     */
+    private Map<Integer, String> buildPositionMap(List<Map<String, Object>> elementTypes) {
+        Map<Integer, String> positionMap = new HashMap<>();
+        for (Map<String, Object> et : elementTypes) {
+            positionMap.put(((Number) et.get("id")).intValue(), (String) et.get("singular_name_short"));
         }
         return Collections.unmodifiableMap(positionMap);
     }

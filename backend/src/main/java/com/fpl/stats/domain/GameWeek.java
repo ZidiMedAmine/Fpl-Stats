@@ -33,10 +33,10 @@ public class GameWeek extends BaseEntity {
     public void setIsCurrent(boolean current) { isCurrent = current; }
     public boolean isNext() { return isNext; }
     public void setNext(boolean next) { isNext = next; }
-    public boolean isPrevious() { return isPrevious; }
-    public void setPrevious(boolean previous) { isPrevious = previous; }
-    public boolean isFinished() { return isFinished; }
-    public void setFinished(boolean finished) { isFinished = finished; }
+    public boolean getIsPrevious() { return isPrevious; }
+    public void setIsPrevious(boolean previous) { isPrevious = previous; }
+    public boolean getIsFinished() { return isFinished; }
+    public void setIsFinished(boolean finished) { isFinished = finished; }
     public Integer getAverageScore() { return averageScore; }
     public void setAverageScore(Integer averageScore) { this.averageScore = averageScore; }
     public Integer getHighestScore() { return highestScore; }
