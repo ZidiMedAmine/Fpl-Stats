@@ -92,7 +92,7 @@
       <div class="transfer-compare-section" *ngIf="activeChart === 'transfers' && transferImpact1 && transferImpact2">
         <div class="transfer-compare-kpis">
           <div class="transfer-kpi-team">
-            <div class="transfer-kpi-label chip-lane-label--1">{{ result.team1.teamName }}</div>
+            <div class="chip-lane-label--1">{{ result.team1.teamName }}</div>
             <div class="transfer-kpi-row">
               <span class="kpi-key">Swap impact</span>
               <span class="kpi-val" [class.kpi-val--negative]="transferImpact1.totalSwapPointsLost < 0"
@@ -108,7 +108,7 @@
             </div>
           </div>
           <div class="transfer-kpi-team">
-            <div class="transfer-kpi-label chip-lane-label--2">{{ result.team2.teamName }}</div>
+            <div class="chip-lane-label--2">{{ result.team2.teamName }}</div>
             <div class="transfer-kpi-row">
               <span class="kpi-key">Swap impact</span>
               <span class="kpi-val" [class.kpi-val--negative]="transferImpact2.totalSwapPointsLost < 0"
@@ -124,7 +124,7 @@
             </div>
           </div>
         </div>
-        <div class="transfer-sub-toggle">
+        <div class="chart-tabs transfer-sub-toggle">
           <button class="chart-tab" [class.active]="compareTransferMode === 'swaps'" (click)="compareTransferMode !== 'swaps' && (compareTransferMode = 'swaps')">From Swaps</button>
           <button class="chart-tab" [class.active]="compareTransferMode === 'hits'" (click)="compareTransferMode !== 'hits' && (compareTransferMode = 'hits')">From Hits</button>
         </div>

@@ -564,8 +564,6 @@
   color: var(--color-text-muted);
 }
 
-// ── TRANSFER COMPARE ─────────────────────────────────────────────────
-
 .transfer-compare-kpis {
   display: flex;
   gap: 16px;
@@ -581,12 +579,9 @@
   background: var(--color-bg-light);
   border-radius: 10px;
   padding: 16px;
-}
-
-.transfer-kpi-label {
-  font-weight: 700;
-  font-size: 0.85rem;
-  margin-bottom: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .transfer-kpi-row {
@@ -599,23 +594,17 @@
   &:last-child { border-bottom: none; }
 }
 
-.kpi-key {
-  font-size: 0.82rem;
-  color: var(--color-text-muted);
-}
+.kpi-key { color: var(--color-text-muted); }
 
 .kpi-val {
   font-weight: 700;
-  font-size: 0.95rem;
 
   &--negative { color: #c62828; }
   &--positive { color: #2e7d32; }
 }
 
 .transfer-sub-toggle {
-  display: flex;
   justify-content: center;
-  gap: 8px;
   margin-bottom: 16px;
 }
 
