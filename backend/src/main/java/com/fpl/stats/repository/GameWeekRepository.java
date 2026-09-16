@@ -18,4 +18,7 @@ public interface GameWeekRepository extends JpaRepository<GameWeek, UUID> {
 
     @Query("SELECT g.gameWeekNumber, g.averageScore FROM GameWeek g WHERE g.averageScore IS NOT NULL")
     List<Object[]> findAllGameWeekAverages();
+
+    @Query("SELECT g.gameWeekNumber, g.highestScore FROM GameWeek g WHERE g.highestScore IS NOT NULL")
+    List<Object[]> findAllGameWeekHighScores();
 }

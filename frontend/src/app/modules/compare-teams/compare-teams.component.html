@@ -76,15 +76,62 @@
           <button class="chart-tab" [class.active]="activeChart === 'teamValue'" (click)="activeChart = 'teamValue'">Team Value</button>
           <button class="chart-tab" [class.active]="activeChart === 'captain'" (click)="activeChart = 'captain'">Captain</button>
           <button class="chart-tab" [class.active]="activeChart === 'formation'" (click)="activeChart = 'formation'">Formation</button>
+          <button class="chart-tab" *ngIf="transferImpact1 && transferImpact2"
+                  [class.active]="activeChart === 'transfers'" (click)="activeChart = 'transfers'">Transfers</button>
         </div>
       </div>
-      <div class="chart-container">
+      <div class="chart-container" *ngIf="activeChart !== 'transfers'">
         <canvas *ngIf="activeChart === 'totalPoints'" baseChart [data]="totalPointsChart" [options]="totalPointsOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'gw'" baseChart [data]="gwLineChart" [options]="gwLineOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'rank'" baseChart [data]="rankChart" [options]="rankOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'teamValue'" baseChart [data]="teamValueChart" [options]="teamValueOptions" [type]="'line'"></canvas>
         <canvas *ngIf="activeChart === 'captain'" baseChart [data]="captainChart" [options]="captainOptions" [type]="'bar'"></canvas>
         <canvas *ngIf="activeChart === 'formation'" baseChart [data]="formationComparisonChart" [options]="formationComparisonOptions" [type]="'bar'"></canvas>
+      </div>
+
+      <div class="transfer-compare-section" *ngIf="activeChart === 'transfers' && transferImpact1 && transferImpact2">
+        <div class="transfer-compare-kpis">
+          <div class="transfer-kpi-team">
+            <div class="transfer-kpi-label chip-lane-label--1">{{ result.team1.teamName }}</div>
+            <div class="transfer-kpi-row">
+              <span class="kpi-key">Swap impact</span>
+              <span class="kpi-val" [class.kpi-val--negative]="transferImpact1.totalSwapPointsLost < 0"
+                                    [class.kpi-val--positive]="transferImpact1.totalSwapPointsLost >= 0">
+                {{ transferImpact1.totalSwapPointsLost > 0 ? '+' : '' }}{{ transferImpact1.totalSwapPointsLost }} pts
+              </span>
+            </div>
+            <div class="transfer-kpi-row">
+              <span class="kpi-key">Hit penalties</span>
+              <span class="kpi-val" [class.kpi-val--negative]="transferImpact1.totalHitPointsLost < 0">
+                {{ transferImpact1.totalHitPointsLost }} pts
+              </span>
+            </div>
+          </div>
+          <div class="transfer-kpi-team">
+            <div class="transfer-kpi-label chip-lane-label--2">{{ result.team2.teamName }}</div>
+            <div class="transfer-kpi-row">
+              <span class="kpi-key">Swap impact</span>
+              <span class="kpi-val" [class.kpi-val--negative]="transferImpact2.totalSwapPointsLost < 0"
+                                    [class.kpi-val--positive]="transferImpact2.totalSwapPointsLost >= 0">
+                {{ transferImpact2.totalSwapPointsLost > 0 ? '+' : '' }}{{ transferImpact2.totalSwapPointsLost }} pts
+              </span>
+            </div>
+            <div class="transfer-kpi-row">
+              <span class="kpi-key">Hit penalties</span>
+              <span class="kpi-val" [class.kpi-val--negative]="transferImpact2.totalHitPointsLost < 0">
+                {{ transferImpact2.totalHitPointsLost }} pts
+              </span>
+            </div>
+          </div>
+        </div>
+        <div class="transfer-sub-toggle">
+          <button class="chart-tab" [class.active]="compareTransferMode === 'swaps'" (click)="compareTransferMode !== 'swaps' && (compareTransferMode = 'swaps')">From Swaps</button>
+          <button class="chart-tab" [class.active]="compareTransferMode === 'hits'" (click)="compareTransferMode !== 'hits' && (compareTransferMode = 'hits')">From Hits</button>
+        </div>
+        <div class="chart-container">
+          <canvas *ngIf="compareTransferMode === 'swaps'" baseChart [data]="transferCompareSwapsChart" [options]="transferCompareSwapsOptions" [type]="'bar'"></canvas>
+          <canvas *ngIf="compareTransferMode === 'hits'" baseChart [data]="transferCompareHitsChart" [options]="transferCompareHitsOptions" [type]="'bar'"></canvas>
+        </div>
       </div>
     </div>
 

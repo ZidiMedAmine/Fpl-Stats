@@ -4,6 +4,7 @@ import {Observable} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
 import {UserInfo} from '../models/UserInfo.model';
 import {CompareResult} from '../models/compare.model';
+import {TransferImpact} from '../models/transfer-impact.model';
 import {environment} from '../../../environments/environment';
 
 /**
@@ -48,6 +49,16 @@ export class TeamService {
       );
     }
     return this.teamCache.get(teamId)!;
+  }
+
+  /**
+   * Returns the transfer impact summary for the given FPL team ID.
+   *
+   * @param teamId - The FPL team ID to fetch transfer impact for.
+   * @returns An observable emitting the {@link TransferImpact}.
+   */
+  getTransferImpact(teamId: number): Observable<TransferImpact> {
+    return this.http.get<TransferImpact>(`${this.apiUrl}/user-info/${teamId}/transfer-impact`);
   }
 
   /**

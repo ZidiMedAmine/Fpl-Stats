@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TeamService } from '../../core/services/team.service';
 import { CompareResult } from '../../core/models/compare.model';
 import { UserInfo } from '../../core/models/UserInfo.model';
+import { TransferImpact } from '../../core/models/transfer-impact.model';
 import { Position } from '../../core/models/player.model';
 import { MatSnackBar } from '@angular/material/snack-bar';
 import { MAT_DIALOG_DATA } from '@angular/material/dialog';
@@ -48,12 +49,72 @@ export class CompareTeamsComponent {
 
   h2h: H2H = { wins1: 0, wins2: 0, draws: 0 };
 
-  activeChart: 'totalPoints' | 'gw' | 'rank' | 'teamValue' | 'captain' | 'formation' = 'totalPoints';
+  activeChart: 'totalPoints' | 'gw' | 'rank' | 'teamValue' | 'captain' | 'formation' | 'transfers' = 'totalPoints';
   chipEvents1: ChipEvent[] = [];
   chipEvents2: ChipEvent[] = [];
   captainNames1: string[] = [];
   captainNames2: string[] = [];
   readonly chipLabels = CHIP_LABELS;
+
+  transferImpact1: TransferImpact | null = null;
+  transferImpact2: TransferImpact | null = null;
+  compareTransferMode: 'swaps' | 'hits' = 'swaps';
+
+  // ── Transfer Compare ──────────────────────────────────────────────────
+  transferCompareSwapsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  transferCompareHitsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  transferCompareSwapsOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
+      datalabels: {
+        display: true,
+        anchor: 'center',
+        align: 'center',
+        color: '#fff',
+        font: { size: 10, weight: 'bold' },
+        formatter: (value: number) => value !== 0 ? `${value > 0 ? '+' : ''}${value}` : ''
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: (item) => ` ${item.dataset.label}: ${(item.raw as number) > 0 ? '+' : ''}${item.raw} pts`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { title: { display: true, text: 'Points' } }
+    }
+  };
+  transferCompareHitsOptions: ChartConfiguration<'bar'>['options'] = {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: true, labels: { usePointStyle: true, boxWidth: 8, boxHeight: 8 }, onClick: () => undefined },
+      datalabels: {
+        display: true,
+        anchor: 'center',
+        align: 'center',
+        color: '#fff',
+        font: { size: 10, weight: 'bold' },
+        formatter: (value: number) => value !== 0 ? `-${value}` : ''
+      },
+      tooltip: {
+        mode: 'index',
+        intersect: false,
+        callbacks: {
+          label: (item) => ` ${item.dataset.label}: -${item.raw} pts`
+        }
+      }
+    },
+    scales: {
+      x: { grid: { display: false } },
+      y: { title: { display: true, text: 'Points' } }
+    }
+  };
 
   // ── GW Points ─────────────────────────────────────────────────────────
   gwLineChart: ChartConfiguration<'line'>['data'] = { labels: [], datasets: [] };
@@ -235,11 +296,15 @@ export class CompareTeamsComponent {
       switchMap(() => forkJoin([
         this.teamService.compareTeams(id1, id2),
         this.teamService.getTeamPlayers(id1),
-        this.teamService.getTeamPlayers(id2)
+        this.teamService.getTeamPlayers(id2),
+        this.teamService.getTransferImpact(id1),
+        this.teamService.getTransferImpact(id2)
       ])),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: ([compareResult, user1, user2]) => {
+      next: ([compareResult, user1, user2, transferImpact1, transferImpact2]) => {
+        this.transferImpact1 = transferImpact1;
+        this.transferImpact2 = transferImpact2;
         this.onCompareLoaded(compareResult, user1, user2);
       },
       error: () => {
@@ -276,6 +341,7 @@ export class CompareTeamsComponent {
     this.buildFormationComparisonChart(user1, user2);
     this.chipEvents1 = this.extractChipEvents(user1);
     this.chipEvents2 = this.extractChipEvents(user2);
+    this.buildTransferCompareCharts();
     this.isLoading = false;
     this.cdr.markForCheck();
   }
@@ -653,6 +719,75 @@ export class CompareTeamsComponent {
       if (player.position === Position.Manager && perf.wasBenched) total += perf.points;
     });
     return total;
+  }
+
+  /**
+   * Builds the transfer impact grouped bar charts for both teams — one for
+   * swap impact per gameweek and one for hit penalties per gameweek.
+   * Team 1 swap bars are coloured red/green by impact direction; team 2 uses
+   * a lighter shade to visually distinguish the two datasets.
+   */
+  private buildTransferCompareCharts(): void {
+    if (!this.transferImpact1 || !this.transferImpact2 || !this.result) return;
+
+    const allGameWeeks = Array.from(new Set([
+      ...this.transferImpact1.perGameWeek.map(gw => gw.gameWeek),
+      ...this.transferImpact2.perGameWeek.map(gw => gw.gameWeek)
+    ])).sort((a, b) => a - b);
+
+    const labels = allGameWeeks.map(gw => `GW${gw}`);
+    const impact1Map = new Map(this.transferImpact1.perGameWeek.map(gw => [gw.gameWeek, gw]));
+    const impact2Map = new Map(this.transferImpact2.perGameWeek.map(gw => [gw.gameWeek, gw]));
+
+    const swaps1 = allGameWeeks.map(gw => impact1Map.get(gw)?.swapImpact ?? 0);
+    const swaps2 = allGameWeeks.map(gw => impact2Map.get(gw)?.swapImpact ?? 0);
+
+    this.transferCompareSwapsChart = {
+      labels,
+      datasets: [
+        {
+          label: this.result.team1.teamName,
+          data: swaps1,
+          backgroundColor: swaps1.map(value => value < 0 ? 'rgba(244,67,54,0.8)' : 'rgba(76,175,80,0.8)'),
+          borderColor: swaps1.map(value => value < 0 ? '#c62828' : '#2e7d32'),
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+        {
+          label: this.result.team2.teamName,
+          data: swaps2,
+          backgroundColor: swaps2.map(value => value < 0 ? 'rgba(229,115,115,0.6)' : 'rgba(129,199,132,0.6)'),
+          borderColor: swaps2.map(value => value < 0 ? '#b71c1c' : '#1b5e20'),
+          borderWidth: 1,
+          borderRadius: 3,
+        }
+      ]
+    };
+
+    const hits1 = allGameWeeks.map(gw => Math.abs(impact1Map.get(gw)?.hitCost ?? 0));
+    const hits2 = allGameWeeks.map(gw => Math.abs(impact2Map.get(gw)?.hitCost ?? 0));
+
+    this.transferCompareHitsChart = {
+      labels,
+      datasets: [
+        {
+          label: this.result.team1.teamName,
+          data: hits1,
+          backgroundColor: CHART_COLORS.primaryAlpha70,
+          borderColor: CHART_COLORS.primary,
+          borderWidth: 1,
+          borderRadius: 3,
+        },
+        {
+          label: this.result.team2.teamName,
+          data: hits2,
+          backgroundColor: CHART_COLORS.team2Alpha70,
+          borderColor: CHART_COLORS.team2,
+          borderWidth: 1,
+          borderRadius: 3,
+        }
+      ]
+    };
   }
 
   /**

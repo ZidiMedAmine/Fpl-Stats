@@ -222,6 +222,7 @@ public class UserTeamSyncService {
         Object teamValue = gwData.get("value");
         entry.setTeamValue(teamValue != null ? ((Number) teamValue).doubleValue() / 10.0 : null);
         entry.setEventTransfers(((Number) gwData.getOrDefault("event_transfers", 0)).intValue());
+        entry.setEventTransfersCost(((Number) gwData.getOrDefault("event_transfers_cost", 0)).intValue());
         entry.setPointsOnBench(((Number) gwData.getOrDefault("points_on_bench", 0)).intValue());
         entry.setChipUsed(chipUsed);
     }

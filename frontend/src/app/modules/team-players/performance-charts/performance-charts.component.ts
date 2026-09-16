@@ -4,6 +4,7 @@ import { Chart, ChartConfiguration, ChartDataset, registerables, ScriptableLineS
 import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
 import { UserInfo } from '../../../core/models/UserInfo.model';
 import { Position } from '../../../core/models/player.model';
+import { TransferImpact } from '../../../core/models/transfer-impact.model';
 import { CHART_COLORS } from '../../../core/chart-colors.constants';
 
 Chart.register(...registerables, ChartDataLabels);
@@ -14,11 +15,13 @@ interface WeeklyGWData {
   assists: number;
   cleanSheets: number;
   bonus: number;
+  defensive: number;
   total: number;
   goalCount: number;
   assistCount: number;
   cleanSheetCount: number;
   bonusCount: number;
+  defensiveCount: number;
 }
 
 interface DoughnutLabelContext {
@@ -42,6 +45,7 @@ interface DoughnutLabelContext {
 export class PerformanceChartsComponent implements OnChanges {
   @Input() user!: UserInfo;
   @Input() teamValue: number | null = null;
+  @Input() transferImpact: TransferImpact | null = null;
   @ViewChild('weeklyBarChart') weeklyBarChartRef?: BaseChartDirective;
   @ViewChild('benchLineChart') benchLineChartRef?: BaseChartDirective;
 
@@ -467,6 +471,12 @@ export class PerformanceChartsComponent implements OnChanges {
   formationFrequencyChart: ChartConfiguration<'doughnut'>['data'] = { labels: [], datasets: [] };
   formationGwPointsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   formationSummary: { mostUsed: string; mostUsedCount: number; bestAvg: string; bestAvgPts: number } = { mostUsed: '-', mostUsedCount: 0, bestAvg: '-', bestAvgPts: 0 };
+
+  transferMode: 'swaps' | 'hits' = 'swaps';
+  transferSwapsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  transferHitsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  transferSwapsOptions: ChartConfiguration<'bar'>['options'];
+  transferHitsOptions: ChartConfiguration<'bar'>['options'];
   rankMode: 'overall' | 'gw' = 'overall';
   positionSummary = { pointsPerMillion: 0, averagePlayerValue: 0 };
 
@@ -502,6 +512,8 @@ export class PerformanceChartsComponent implements OnChanges {
   };
 
   constructor(private readonly zone: NgZone, private readonly cdr: ChangeDetectorRef) {
+    this.transferSwapsOptions = this.buildTransferBarOptions('Points from Swaps', false);
+    this.transferHitsOptions = this.buildTransferBarOptions('Hit Penalty', true);
     this.weeklyBarOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -550,6 +562,9 @@ export class PerformanceChartsComponent implements OnChanges {
       this.prepareBenchWasted();
       this.prepareBestGW();
       this.prepareFormationCharts();
+    }
+    if (this.transferImpact) {
+      this.prepareTransferCharts();
     }
   }
 
@@ -740,6 +755,10 @@ export class PerformanceChartsComponent implements OnChanges {
       this.user.gameWeekAverages?.[index + 1] ?? null
     );
 
+    const highScores = Array.from({ length: gameWeekCount }, (_, index) =>
+      this.user.gameWeekHighScores?.[index + 1] ?? null
+    );
+
     this.totalPointsChart = {
       labels,
       datasets: [
@@ -757,6 +776,16 @@ export class PerformanceChartsComponent implements OnChanges {
           label: 'GW Average',
           borderDash: [6, 4],
           borderColor: CHART_COLORS.pink,
+          backgroundColor: 'transparent',
+          fill: false,
+          pointRadius: 5,
+          tension: 0.3
+        },
+        {
+          data: highScores,
+          label: 'GW High Score',
+          borderDash: [3, 3],
+          borderColor: CHART_COLORS.gold,
           backgroundColor: 'transparent',
           fill: false,
           pointRadius: 5,
@@ -831,10 +860,12 @@ export class PerformanceChartsComponent implements OnChanges {
     const assists         = new Array(gameWeekCount).fill(0);
     const cleanSheets     = new Array(gameWeekCount).fill(0);
     const bonus           = new Array(gameWeekCount).fill(0);
+    const defensive       = new Array(gameWeekCount).fill(0);
     const goalCount       = new Array(gameWeekCount).fill(0);
     const assistCount     = new Array(gameWeekCount).fill(0);
     const cleanSheetCount = new Array(gameWeekCount).fill(0);
     const bonusCount      = new Array(gameWeekCount).fill(0);
+    const defensiveCount  = new Array(gameWeekCount).fill(0);
 
     this.user.players.forEach(player => {
       if (player.position === Position.Manager) return;
@@ -850,6 +881,12 @@ export class PerformanceChartsComponent implements OnChanges {
         assistCount[index] += performance.assists;
         if (performance.cleanSheet) cleanSheetCount[index]++;
         if (performance.bonusPoints > 0) bonusCount[index]++;
+
+        const threshold = this.getDefensiveContributionThreshold(player.position);
+        if (threshold !== null && performance.defensiveContribution > 0) {
+          defensive[index]      += Math.floor(performance.defensiveContribution / threshold);
+          defensiveCount[index] += performance.defensiveContribution;
+        }
       });
     });
 
@@ -859,11 +896,13 @@ export class PerformanceChartsComponent implements OnChanges {
       assists: assists[index],
       cleanSheets: cleanSheets[index],
       bonus: bonus[index],
-      total: goals[index] + assists[index] + cleanSheets[index] + bonus[index],
+      defensive: defensive[index],
+      total: goals[index] + assists[index] + cleanSheets[index] + bonus[index] + defensive[index],
       goalCount: goalCount[index],
       assistCount: assistCount[index],
       cleanSheetCount: cleanSheetCount[index],
       bonusCount: bonusCount[index],
+      defensiveCount: defensiveCount[index],
     }));
 
     const totals = this.weeklyGWData.map(data => data.total);
@@ -1072,6 +1111,86 @@ export class PerformanceChartsComponent implements OnChanges {
    * @param type - The chart type identifier to activate.
    */
   showChart(type: string): void { this.activeChart = type; }
+
+  /**
+   * Builds the swap-impact and hit-cost bar charts from the transfer impact input.
+   */
+  prepareTransferCharts(): void {
+    if (!this.transferImpact) return;
+    const gwData = this.transferImpact.perGameWeek;
+    const labels = gwData.map(gw => `GW${gw.gameWeek}`);
+
+    this.transferSwapsChart = {
+      labels,
+      datasets: [{
+        data: gwData.map(gw => gw.swapImpact),
+        label: 'Swap Impact',
+        backgroundColor: gwData.map(gw => gw.swapImpact < 0 ? CHART_COLORS.danger : CHART_COLORS.success),
+        borderRadius: 4
+      }]
+    };
+
+    this.transferHitsChart = {
+      labels,
+      datasets: [{
+        data: gwData.map(gw => Math.abs(gw.hitCost)),
+        label: 'Hit Penalty',
+        backgroundColor: gwData.map(gw => gw.hitCost < 0 ? CHART_COLORS.danger : CHART_COLORS.primaryAlpha25),
+        borderRadius: 4
+      }]
+    };
+  }
+
+  /**
+   * Builds shared Chart.js bar options for a transfer impact chart.
+   *
+   * @param datasetLabel - The label shown in the tooltip for the dataset.
+   * @param alwaysNegative - When true, the datalabel always prepends a minus sign (used for hit costs stored as absolute values).
+   * @returns Bar chart options configured for positive/negative transfer impact display.
+   */
+  private buildTransferBarOptions(datasetLabel: string, alwaysNegative: boolean): ChartConfiguration<'bar'>['options'] {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          display: true,
+          anchor: 'center',
+          align: 'center',
+          font: { size: 10, weight: 'bold' },
+          color: '#fff',
+          formatter: (value: number) => {
+            if (value === 0) return '';
+            return alwaysNegative ? `-${value}` : `${value > 0 ? '+' : ''}${value}`;
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (item) => ` ${datasetLabel}: ${Number(item.raw) > 0 ? '+' : ''}${item.raw} pts`
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: CHART_COLORS.ui.axisLabel }, grid: { color: CHART_COLORS.ui.gridLine } },
+        y: { ticks: { color: CHART_COLORS.ui.axisLabel }, grid: { color: CHART_COLORS.ui.gridLine } }
+      }
+    };
+  }
+
+  /**
+   * Returns the defensive contribution point threshold for the given position.
+   * One point is awarded per N defensive contributions in a gameweek.
+   * Returns {@code null} for positions that do not earn defensive contribution points.
+   *
+   * @param position - The player's position string.
+   * @returns The threshold value (10 for DEF, 12 for MID), or null.
+   */
+  private getDefensiveContributionThreshold(position: string): number | null {
+    if (position === Position.DEF) return 10;
+    if (position === Position.MID) return 12;
+    return null;
+  }
 
   /**
    * Returns the display label for a position including its abbreviation,

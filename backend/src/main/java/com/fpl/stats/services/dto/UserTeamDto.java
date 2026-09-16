@@ -16,6 +16,7 @@ public class UserTeamDto implements Serializable {
     private int currentGameWeek;
     private List<PlayerDto> players;
     private Map<Integer, Integer> gameWeekAverages;
+    private Map<Integer, Integer> gameWeekHighScores;
     private Double teamValue;
     private Integer bank;
     private Integer totalTransfers;
@@ -40,6 +41,8 @@ public class UserTeamDto implements Serializable {
     public void setPlayers(List<PlayerDto> players) { this.players = players; }
     public Map<Integer, Integer> getGameWeekAverages() { return gameWeekAverages; }
     public void setGameWeekAverages(Map<Integer, Integer> gameWeekAverages) { this.gameWeekAverages = gameWeekAverages; }
+    public Map<Integer, Integer> getGameWeekHighScores() { return gameWeekHighScores; }
+    public void setGameWeekHighScores(Map<Integer, Integer> gameWeekHighScores) { this.gameWeekHighScores = gameWeekHighScores; }
     public Double getTeamValue() { return teamValue; }
     public void setTeamValue(Double teamValue) { this.teamValue = teamValue; }
     public Integer getBank() { return bank; }
