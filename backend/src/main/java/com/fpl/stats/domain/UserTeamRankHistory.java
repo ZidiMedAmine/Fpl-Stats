@@ -36,6 +36,9 @@ public class UserTeamRankHistory extends BaseEntity {
     private int eventTransfers;
 
     @Column(nullable = false)
+    private int eventTransfersCost;
+
+    @Column(nullable = false)
     private int pointsOnBench;
 
     @Column(length = 10)
@@ -61,6 +64,8 @@ public class UserTeamRankHistory extends BaseEntity {
     public void setTeamValue(Double teamValue) { this.teamValue = teamValue; }
     public int getEventTransfers() { return eventTransfers; }
     public void setEventTransfers(int eventTransfers) { this.eventTransfers = eventTransfers; }
+    public int getEventTransfersCost() { return eventTransfersCost; }
+    public void setEventTransfersCost(int eventTransfersCost) { this.eventTransfersCost = eventTransfersCost; }
     public int getPointsOnBench() { return pointsOnBench; }
     public void setPointsOnBench(int pointsOnBench) { this.pointsOnBench = pointsOnBench; }
     public String getChipUsed() { return chipUsed; }

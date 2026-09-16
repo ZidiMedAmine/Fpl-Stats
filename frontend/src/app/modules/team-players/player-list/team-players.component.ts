@@ -2,10 +2,11 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, OnDestroy, OnIni
 import { Player, Position } from '../../../core/models/player.model';
 import { TeamService } from '../../../core/services/team.service';
 import { ActivatedRoute } from '@angular/router';
-import { Subject } from 'rxjs';
+import { forkJoin, Subject } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
 import { GameWeekPerformance } from '../../../core/models/game-week-performance.model';
 import { UserInfo } from '../../../core/models/UserInfo.model';
+import { TransferImpact } from '../../../core/models/transfer-impact.model';
 import { PlayerDetailsComponent } from '../player-details/player-details.component';
 import { ComparePlayersComponent } from '../../compare-players/compare-players.component';
 import { CompareTeamsComponent } from '../../compare-teams/compare-teams.component';
@@ -22,6 +23,7 @@ import { LoaderService } from '../../../core/loader.service';
 })
 export class TeamPlayersComponent implements OnInit, OnDestroy {
   user?: UserInfo;
+  transferImpact: TransferImpact | null = null;
   isLoading = true;
   players: Player[] = [];
   readonly displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
@@ -183,10 +185,14 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
     this.isLoading = true;
     this.loaderService.show();
     this.teamService.syncUserTeam(teamId).pipe(
-      switchMap(() => this.teamService.getTeamPlayers(teamId))
+      switchMap(() => forkJoin({
+        user: this.teamService.getTeamPlayers(teamId),
+        transferImpact: this.teamService.getTransferImpact(teamId)
+      }))
     ).subscribe({
-      next: (user) => {
+      next: ({ user, transferImpact }) => {
         this.user = user;
+        this.transferImpact = transferImpact;
         this.players = user.players;
         this.updateNavBarDetails(this.user);
         this.players = this.calculateCaptaincyStats(user.players);

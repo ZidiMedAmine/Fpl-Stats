@@ -41,6 +41,29 @@
     </div>
   </div>
 
+  <div class="insight-card" *ngIf="transferImpact != null">
+    <div class="insight-icon-wrap transfer-swap-icon">
+      <mat-icon>swap_horiz</mat-icon>
+    </div>
+    <div class="insight-body">
+      <div class="insight-value" [class.insight-value--negative]="transferImpact.totalSwapPointsLost < 0"
+                                 [class.insight-value--positive]="transferImpact.totalSwapPointsLost > 0">
+        {{ transferImpact.totalSwapPointsLost > 0 ? '+' : '' }}{{ transferImpact.totalSwapPointsLost }} pts
+      </div>
+      <div class="insight-label">{{ transferImpact.totalSwapPointsLost >= 0 ? 'Gained from swaps' : 'Lost from swaps' }}</div>
+    </div>
+  </div>
+
+  <div class="insight-card" *ngIf="transferImpact != null && transferImpact.totalHitPointsLost !== 0">
+    <div class="insight-icon-wrap transfer-hit-icon">
+      <mat-icon>remove_circle_outline</mat-icon>
+    </div>
+    <div class="insight-body">
+      <div class="insight-value insight-value--negative">{{ transferImpact.totalHitPointsLost }} pts</div>
+      <div class="insight-label">Lost from hits</div>
+    </div>
+  </div>
+
 </div>
 
 <!-- Performance Card -->
@@ -56,6 +79,7 @@
       <button class="chart-tab" [class.active]="activeChart === 'weekly'" (click)="showChart('weekly')">Weekly Stats</button>
       <button class="chart-tab" [class.active]="activeChart === 'position'" (click)="showChart('position')">By Position</button>
       <button class="chart-tab" [class.active]="activeChart === 'formation'" (click)="showChart('formation')">By Formation</button>
+      <button class="chart-tab" *ngIf="transferImpact" [class.active]="activeChart === 'transfers'" (click)="showChart('transfers')">Transfers</button>
     </div>
   </div>
 
@@ -178,6 +202,14 @@
           </div>
           <span class="detail-bar-value">{{ weeklyHoveredGW.bonus }} pts</span>
         </div>
+        <div class="detail-bar-row">
+          <span class="detail-bar-label">Defensive</span>
+          <div class="detail-bar-track">
+            <div class="detail-bar-fill detail-bar-fill--defensive" [style.width.%]="weeklyHoveredGW.total ? (weeklyHoveredGW.defensive / weeklyHoveredGW.total) * 100 : 0"></div>
+            <span class="detail-bar-inner">{{ weeklyHoveredGW.defensiveCount }}</span>
+          </div>
+          <span class="detail-bar-value">{{ weeklyHoveredGW.defensive }} pts</span>
+        </div>
       </div>
       <div class="detail-total">Total: {{ weeklyHoveredGW.total }} pts</div>
     </div>
@@ -238,6 +270,38 @@
         <div class="doughnut-title">Total Points by Formation</div>
         <canvas baseChart [data]="formationGwPointsChart" [options]="formationGwPointsOptions" [type]="'bar'"></canvas>
       </div>
+    </div>
+  </div>
+
+  <div *ngIf="activeChart === 'transfers' && transferImpact" class="bench-section">
+    <div class="weekly-summary-row">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value"
+              [class.transfer-negative]="transferImpact.totalSwapPointsLost < 0"
+              [class.transfer-positive]="transferImpact.totalSwapPointsLost > 0">
+          {{ transferImpact.totalSwapPointsLost > 0 ? '+' : '' }}{{ transferImpact.totalSwapPointsLost }}
+        </span>
+        <span class="weekly-stat-label">Total swap impact</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value transfer-negative">{{ transferImpact.totalHitPointsLost }}</span>
+        <span class="weekly-stat-label">Total hit cost</span>
+      </div>
+      <div class="weekly-toggle-wrap">
+        <button class="chart-tab" [class.active]="transferMode === 'swaps'" (click)="transferMode !== 'swaps' && (transferMode = 'swaps')">From Swaps</button>
+        <button class="chart-tab" [class.active]="transferMode === 'hits'" (click)="transferMode !== 'hits' && (transferMode = 'hits')">From Hits</button>
+      </div>
+    </div>
+    <div class="doughnut-title">
+      {{ transferMode === 'swaps' ? 'Points Impact from Player Swaps' : 'Hit Penalties per Gameweek' }}
+    </div>
+    <div class="chart-container">
+      <canvas *ngIf="transferMode === 'swaps'" baseChart [data]="transferSwapsChart" [options]="transferSwapsOptions" [type]="'bar'"></canvas>
+      <canvas *ngIf="transferMode === 'hits'" baseChart [data]="transferHitsChart" [options]="transferHitsOptions" [type]="'bar'"></canvas>
+    </div>
+    <div class="transfer-legend" *ngIf="transferMode === 'swaps'">
+      <span class="transfer-legend-item transfer-legend-item--bad">Lost points</span>
+      <span class="transfer-legend-item transfer-legend-item--good">Gained points</span>
     </div>
   </div>
 

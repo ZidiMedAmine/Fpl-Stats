@@ -1,10 +1,12 @@
 package com.fpl.stats.controller;
 
 import com.fpl.stats.services.PlayerService;
+import com.fpl.stats.services.TransferImpactService;
 import com.fpl.stats.services.UserInfoService;
 import com.fpl.stats.services.dto.CompareDto;
 import com.fpl.stats.services.dto.PlayerDetailDto;
 import com.fpl.stats.services.dto.PlayerSummaryDto;
+import com.fpl.stats.services.dto.TransferImpactDto;
 import com.fpl.stats.services.dto.UserTeamDto;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
@@ -45,16 +47,20 @@ public class FplController {
 
     private final UserInfoService userInfoService;
     private final PlayerService playerService;
+    private final TransferImpactService transferImpactService;
 
     /**
      * Constructs a {@code FplController} with its required service dependencies.
      *
-     * @param userInfoService service for user team information
-     * @param playerService   service for player data
+     * @param userInfoService       service for user team information
+     * @param playerService         service for player data
+     * @param transferImpactService service for computing transfer impact
      */
-    public FplController(UserInfoService userInfoService, PlayerService playerService) {
+    public FplController(UserInfoService userInfoService, PlayerService playerService,
+                         TransferImpactService transferImpactService) {
         this.userInfoService = userInfoService;
         this.playerService = playerService;
+        this.transferImpactService = transferImpactService;
     }
 
     /**
@@ -110,5 +116,18 @@ public class FplController {
     public ResponseEntity<PlayerDetailDto> getPlayerDetail(@PathVariable int fplId) {
         PlayerDetailDto playerDetail = playerService.getPlayerDetail(fplId);
         return ResponseEntity.ok().cacheControl(PLAYER_CACHE_CONTROL).body(playerDetail);
+    }
+
+    /**
+     * Returns the transfer impact summary for the given FPL team, including per-gameweek
+     * player swap impacts and hit penalties.
+     *
+     * @param fplTeamId the FPL team identifier
+     * @return 200 with the transfer impact DTO, or 404 if the team is not found
+     */
+    @GetMapping("/user-info/{fplTeamId}/transfer-impact")
+    public ResponseEntity<TransferImpactDto> getTransferImpact(@PathVariable long fplTeamId) {
+        TransferImpactDto transferImpact = transferImpactService.getTransferImpact(fplTeamId);
+        return ResponseEntity.ok().cacheControl(USER_CACHE_CONTROL).body(transferImpact);
     }
 }

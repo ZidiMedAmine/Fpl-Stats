@@ -43,12 +43,11 @@ public class UserSyncServiceImpl implements UserSyncService {
     /**
      * Constructs a {@code UserSyncServiceImpl} with its required dependencies.
      *
-     * @param playerHistorySyncService syncs per-player gameweek history
+     * @param playerHistorySyncService syncs per-player gameWeek history
      * @param trackedTeamRepository   persists tracked team records
-     * @param userTeamRepository      used to check the team's last synced gameweek
-     * @param fixtureDataService      used to determine the last completed gameweek
+     * @param userTeamRepository      used to check the team's last synced gameWeek
      * @param userTeamSyncService     syncs user team metadata and rank history
-     * @param userPickSyncService     syncs gameweek picks for a user team
+     * @param userPickSyncService     syncs gameWeek picks for a user team
      * @param userPickRepository      used to retrieve players picked by a team
      */
     public UserSyncServiceImpl(PlayerHistorySyncService playerHistorySyncService,

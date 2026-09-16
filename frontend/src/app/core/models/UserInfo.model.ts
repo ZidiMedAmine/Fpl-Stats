@@ -26,6 +26,7 @@ export interface UserInfo {
   currentGameWeek: number;
   players: Player[];
   gameWeekAverages: { [gw: number]: number };
+  gameWeekHighScores: { [gw: number]: number };
   rankChange?: number | null;
   rankHistory: RankHistory[];
 }

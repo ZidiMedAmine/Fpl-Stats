@@ -12,6 +12,7 @@ public class RankHistoryDto implements Serializable {
     private int bank;
     private Double teamValue;
     private int eventTransfers;
+    private int eventTransfersCost;
     private int pointsOnBench;
     private String chipUsed;
 
@@ -31,6 +32,8 @@ public class RankHistoryDto implements Serializable {
     public void setTeamValue(Double teamValue) { this.teamValue = teamValue; }
     public int getEventTransfers() { return eventTransfers; }
     public void setEventTransfers(int eventTransfers) { this.eventTransfers = eventTransfers; }
+    public int getEventTransfersCost() { return eventTransfersCost; }
+    public void setEventTransfersCost(int eventTransfersCost) { this.eventTransfersCost = eventTransfersCost; }
     public int getPointsOnBench() { return pointsOnBench; }
     public void setPointsOnBench(int pointsOnBench) { this.pointsOnBench = pointsOnBench; }
     public String getChipUsed() { return chipUsed; }

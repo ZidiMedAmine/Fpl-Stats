@@ -35,10 +35,12 @@
   }
 }
 
-.captain-icon { background: rgba(255, 152, 0, 0.15); }
-.bench-icon   { background: rgba(244, 67, 54, 0.1);   mat-icon { color: #e53935; } }
-.bestgw-icon  { background: rgba(76, 175, 80, 0.12);  mat-icon { color: #43a047; } }
-.value-icon   { background: rgba(33, 150, 243, 0.12); mat-icon { color: #1e88e5; } }
+.captain-icon       { background: rgba(255, 152, 0, 0.15); }
+.bench-icon         { background: rgba(244, 67, 54, 0.1);   mat-icon { color: #e53935; } }
+.bestgw-icon        { background: rgba(76, 175, 80, 0.12);  mat-icon { color: #43a047; } }
+.value-icon         { background: rgba(33, 150, 243, 0.12); mat-icon { color: #1e88e5; } }
+.transfer-swap-icon { background: rgba(103, 58, 183, 0.12); mat-icon { color: #7b1fa2; } }
+.transfer-hit-icon  { background: rgba(244, 67, 54, 0.1);   mat-icon { color: #c62828; } }
 
 .captain-avatar {
   width: 44px;
@@ -305,6 +307,7 @@
   &--assists      { background: #378ADD; }
   &--clean-sheets { background: #7F77DD; }
   &--bonus        { background: #EF9F27; }
+  &--defensive    { background: #26a69a; }
 }
 
 .detail-bar-inner {
@@ -339,6 +342,41 @@
   background: var(--color-bg-light, #f4f3f8);
   border-radius: 8px;
   text-align: center;
+}
+
+/* ── Insight value state colours ────────────────────────────────── */
+.insight-value--negative { color: #c62828; }
+.insight-value--positive { color: #2e7d32; }
+
+/* ── Transfer chart stat colours ────────────────────────────────── */
+.transfer-negative { color: #c62828; }
+.transfer-positive { color: #2e7d32; }
+
+/* ── Transfer chart legend ──────────────────────────────────────── */
+.transfer-legend {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  margin-top: 10px;
+  font-size: 0.78rem;
+  color: var(--color-text-secondary, #6b7280);
+}
+
+.transfer-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+
+  &::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  &--bad::before  { background: #f44336; }
+  &--good::before { background: #4caf50; }
 }
 
 @media (max-width: 768px) {
