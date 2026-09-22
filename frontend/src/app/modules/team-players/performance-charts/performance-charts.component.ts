@@ -742,7 +742,7 @@ export class PerformanceChartsComponent implements OnChanges {
       if (player.position !== Position.Manager) {
         player.performances.forEach(performance => {
           const index = performance.gameWeek - 1;
-          if (index >= 0 && index < gameWeekCount && performance.wasCaptain && performance.wasInMyTeam) {
+          if (index >= 0 && index < gameWeekCount && performance.wasInMyTeam && !performance.wasBenched && performance.multiplier > 1) {
             captainNamesByGw[index] = player.name;
           }
         });

@@ -800,10 +800,11 @@ export class CompareTeamsComponent {
   private getCaptainPointsPerGW(user: UserInfo): Map<number, { points: number; name: string }> {
     const map = new Map<number, { points: number; name: string }>();
     for (const player of user.players) {
+      if (player.position === Position.Manager) continue;
       for (const performance of player.performances) {
-        if (performance.wasCaptain || performance.wasTripleCaptain) {
+        if (performance.wasInMyTeam && !performance.wasBenched && performance.multiplier > 1) {
           map.set(performance.gameWeek, {
-            points: performance.points * (performance.multiplier ?? (performance.wasTripleCaptain ? 3 : 2)),
+            points: performance.points * performance.multiplier,
             name: player.name
           });
         }
