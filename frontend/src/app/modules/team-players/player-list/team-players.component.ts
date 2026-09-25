@@ -7,6 +7,7 @@ import { switchMap, takeUntil } from 'rxjs/operators';
 import { GameWeekPerformance } from '../../../core/models/game-week-performance.model';
 import { UserInfo } from '../../../core/models/UserInfo.model';
 import { TransferImpact } from '../../../core/models/transfer-impact.model';
+import { DreamTeam } from '../../../core/models/dream-team.model';
 import { PlayerDetailsComponent } from '../player-details/player-details.component';
 import { ComparePlayersComponent } from '../../compare-players/compare-players.component';
 import { CompareTeamsComponent } from '../../compare-teams/compare-teams.component';
@@ -24,13 +25,20 @@ import { LoaderService } from '../../../core/loader.service';
 export class TeamPlayersComponent implements OnInit, OnDestroy {
   user?: UserInfo;
   transferImpact: TransferImpact | null = null;
+  dreamTeam: DreamTeam | null = null;
   isLoading = true;
+  isDreamTeamLoading = false;
+  selectedTabIndex = 0;
   players: Player[] = [];
   readonly displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
 
   showOwnedOnly = false;
 
   readonly Position = Position;
+
+  /** Index of the "vs Dream Team" tab. */
+  private readonly dreamTeamTabIndex = 2;
+
   private destroy$ = new Subject<void>();
 
   /**
@@ -57,6 +65,18 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
 
   /** TrackBy function for the player list, keyed by player code. */
   trackByPlayerCode(_index: number, player: Player): number { return player.code; }
+
+  /**
+   * Handles tab selection changes. Lazily loads the dream team data when
+   * the "vs Dream Team" tab is selected for the first time.
+   *
+   * @param tabIndex - The index of the newly selected tab.
+   */
+  onTabChange(tabIndex: number): void {
+    if (tabIndex === this.dreamTeamTabIndex && !this.dreamTeam && !this.isDreamTeamLoading) {
+      this.loadDreamTeam();
+    }
+  }
 
   public ngOnInit(): void {
     this.route.paramMap.pipe(takeUntil(this.destroy$)).subscribe(params => {
@@ -169,6 +189,29 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
       data: { team1Id: this.user?.fplTeamId },
       panelClass: 'custom-dialog-container',
       autoFocus: false,
+    });
+  }
+
+  /**
+   * Fetches the dream team data from the service and stores it for the compare tab.
+   */
+  private loadDreamTeam(): void {
+    this.isDreamTeamLoading = true;
+    this.cdr.markForCheck();
+    this.teamService.getDreamTeam().pipe(takeUntil(this.destroy$)).subscribe({
+      next: (dreamTeam) => {
+        this.dreamTeam = dreamTeam;
+        this.isDreamTeamLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isDreamTeamLoading = false;
+        this.cdr.markForCheck();
+        this.snackBar.open('Failed to load dream team data.', 'Dismiss', {
+          duration: 5000,
+          panelClass: 'error-snackbar',
+        });
+      },
     });
   }
 

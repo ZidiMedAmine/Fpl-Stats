@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, NgZone, OnChanges, ViewChild } from '@angular/core';
 import { BaseChartDirective } from 'ng2-charts';
-import { Chart, ChartConfiguration, ChartDataset, registerables, ScriptableLineSegmentContext } from 'chart.js';
+import { Chart, ChartConfiguration, ChartDataset, Plugin, registerables, ScriptableLineSegmentContext } from 'chart.js';
 import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
 import { UserInfo } from '../../../core/models/UserInfo.model';
 import { Position } from '../../../core/models/player.model';
@@ -8,6 +8,67 @@ import { TransferImpact } from '../../../core/models/transfer-impact.model';
 import { CHART_COLORS } from '../../../core/chart-colors.constants';
 
 Chart.register(...registerables, ChartDataLabels);
+
+/**
+ * Custom Chart.js plugin that draws rank-diff labels at the midpoint
+ * between each pair of consecutive data points.
+ */
+const rankMidpointLabelsPlugin: Plugin<'line'> = {
+  id: 'rankMidpointLabels',
+  afterDatasetsDraw(chart) {
+    const dataset = chart.data.datasets[0];
+    if (!dataset) return;
+    const data = dataset.data as number[];
+    const meta = chart.getDatasetMeta(0);
+    const ctx = chart.ctx;
+
+    const FONT_SIZE = 12;
+    const OFFSET = 20;
+    const PADDING = 3;
+
+    ctx.save();
+    ctx.font = `bold ${FONT_SIZE}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    for (let index = 1; index < data.length; index++) {
+      const prev = data[index - 1];
+      const curr = data[index];
+      const diff = prev - curr;
+      if (diff === 0) continue;
+
+      const p0 = meta.data[index - 1];
+      const p1 = meta.data[index];
+      const midX = (p0.x + p1.x) / 2;
+      // Always place label above the higher of the two endpoints, not just the midpoint
+      const topY = Math.min(p0.y, p1.y) - OFFSET;
+      const labelY = Math.max(topY, chart.chartArea.top + FONT_SIZE);
+
+      const label = diff > 0
+        ? `+${diff.toLocaleString()}`
+        : `-${Math.abs(diff).toLocaleString()}`;
+
+      const textWidth = ctx.measureText(label).width;
+
+      // White background pill so label is readable over the line/fill
+      ctx.fillStyle = 'rgba(255,255,255,0.85)';
+      ctx.beginPath();
+      ctx.roundRect(
+        midX - textWidth / 2 - PADDING,
+        labelY - FONT_SIZE / 2 - PADDING,
+        textWidth + PADDING * 2,
+        FONT_SIZE + PADDING * 2,
+        4
+      );
+      ctx.fill();
+
+      ctx.fillStyle = diff > 0 ? CHART_COLORS.success : CHART_COLORS.danger;
+      ctx.fillText(label, midX, labelY);
+    }
+
+    ctx.restore();
+  }
+};
 
 interface WeeklyGWData {
   gw: number;
@@ -132,35 +193,15 @@ export class PerformanceChartsComponent implements OnChanges {
     }
   };
 
+  /** Plugin instance passed to the rank history chart canvas only. */
+  readonly rankMidpointLabelsPlugin = [rankMidpointLabelsPlugin];
+
   rankHistoryOptions: ChartConfiguration<'line'>['options'] = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      datalabels: {
-        display: true,
-        font: { weight: 'bold', size: 9 },
-        anchor: 'end',
-        align: 'top',
-        offset: 4,
-        color: (context: Context) => {
-          const index = context.dataIndex;
-          if (index === 0) return 'transparent';
-          const data = (context.dataset as ChartDataset<'line'>).data as number[];
-          const diff = data[index - 1] - data[index];
-          if (diff > 0) return CHART_COLORS.success;
-          if (diff < 0) return CHART_COLORS.danger;
-          return 'transparent';
-        },
-        formatter: (value: number, context: Context) => {
-          const index = context.dataIndex;
-          if (index === 0) return '';
-          const data = (context.dataset as ChartDataset<'line'>).data as number[];
-          const diff = data[index - 1] - value;
-          if (diff === 0) return '';
-          return diff > 0 ? `+${diff.toLocaleString()}` : `-${Math.abs(diff).toLocaleString()}`;
-        }
-      }
+      datalabels: { display: false },
     },
     scales: {
       y: {

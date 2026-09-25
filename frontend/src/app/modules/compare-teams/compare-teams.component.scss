@@ -334,6 +334,14 @@
 .chart-tabs {
   display: flex;
   gap: 8px;
+  flex-wrap: wrap;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+
+  &::-webkit-scrollbar {
+    display: none;
+  }
 }
 
 .chart-tab {
@@ -611,6 +619,9 @@
 @media (max-width: 640px) {
   .compare-container {
     padding: 16px;
+    overflow-x: hidden;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .compare-form {
@@ -645,6 +656,27 @@
     font-size: 10px;
   }
 
+  // Chart tabs: single scrollable row on mobile
+  .chart-tabs {
+    flex-wrap: nowrap;
+    width: 100%;
+  }
+
+  .chart-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  // Chip lanes: stack label above events
+  .chip-lane {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .chip-lane-label {
+    min-width: unset;
+  }
+
   .last5-row {
     grid-template-columns: 44px 1fr 1fr 44px;
     padding: 8px;
@@ -665,5 +697,51 @@
 
   .player-list-team {
     display: none;
+  }
+
+  // Transfer KPIs: full width on mobile
+  .transfer-kpi-team {
+    min-width: unset;
+    max-width: 100%;
+  }
+
+  // H2H strip: constrain to full width, truncate long team names
+  .h2h-strip {
+    width: 100%;
+  }
+
+  .h2h-label {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100px;
+  }
+
+  // Chart legend: wrap on small screens
+  .chart-legend {
+    flex-wrap: wrap;
+  }
+
+  // Chart container: full width, no overflow
+  .chart-container {
+    max-width: 100%;
+    height: 260px;
+  }
+
+  // Section: prevent overflow
+  .section {
+    overflow-x: hidden;
+  }
+
+  // Page title: prevent overflow
+  .page-title {
+    font-size: 1.3rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .page-subtitle {
+    font-size: 0.82rem;
   }
 }

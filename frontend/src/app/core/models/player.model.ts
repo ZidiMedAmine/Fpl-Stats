@@ -18,5 +18,6 @@ export interface Player {
   status: string;
   avgPoints: number;
   totalPointsForTeam: number;
+  totalPoints: number;
   performances: GameWeekPerformance[];
 }

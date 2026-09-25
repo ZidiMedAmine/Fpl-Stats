@@ -1,7 +1,7 @@
 <app-loading-overlay *ngIf="isLoading"></app-loading-overlay>
 <div class="container" *ngIf="user">
 
-  <!-- Team Summary Card -->
+  <!-- Team Summary Card (always visible above tabs) -->
   <div class="summary-card">
     <div class="summary-card__identity">
       <div class="summary-card__name">{{ user.teamName }}</div>
@@ -36,127 +36,152 @@
     </button>
   </div>
 
-  <!-- Performance Charts + Insight Cards -->
-  <app-performance-charts
-    [user]="user"
-    [teamValue]="user.teamValue"
-    [transferImpact]="transferImpact">
-  </app-performance-charts>
+  <!-- Tab group -->
+  <mat-tab-group [(selectedIndex)]="selectedTabIndex" (selectedIndexChange)="onTabChange($event)" animationDuration="200ms" mat-stretch-tabs="false" class="tab-group">
 
-  <!-- Mobile card list (< 600px) -->
-  <div *ngIf="!isLoading" class="mobile-card-list">
-    <ng-container *ngFor="let player of players; trackBy: trackByPlayerCode">
-      <div class="player-card">
-        <img [appPlayerImage]="player.code" [alt]="player.name" class="card-photo">
-        <div class="card-body">
-          <div class="card-name">{{ player.name }}</div>
-          <div class="card-meta">{{ player.position }} · {{ player.teamName }}</div>
-        </div>
-        <div class="card-stats">
-          <span class="avg-badge" [ngStyle]="getNameColorStyle(player.avgPoints, player.position)">{{ player.avgPoints | number:'1.1-1' }}</span>
-          <div class="card-total">{{ player.totalPointsForTeam }} pts</div>
-        </div>
-        <div class="card-actions">
-          <button mat-icon-button (click)="openPlayerDetails(player)" [attr.aria-label]="'Details for ' + player.name" matTooltip="Details">
-            <mat-icon>info</mat-icon>
-          </button>
-          <button mat-icon-button (click)="openCompareDialog(player)" [attr.aria-label]="'Compare ' + player.name" matTooltip="Compare">
-            <mat-icon>balance</mat-icon>
-          </button>
-        </div>
-      </div>
-    </ng-container>
-  </div>
+    <!-- Overview Tab -->
+    <mat-tab label="Overview">
+      <app-performance-charts
+        [user]="user"
+        [teamValue]="user.teamValue"
+        [transferImpact]="transferImpact">
+      </app-performance-charts>
+    </mat-tab>
 
-  <!-- Player Stats Card -->
-  <div *ngIf="!isLoading" class="player-stats-card">
-    <div class="player-stats-header-row">
-      <div class="player-stats-header">PLAYER STATS</div>
-      <div class="ownership-toggle">
-        <button mat-button [class.active]="!showOwnedOnly" (click)="showOwnedOnly = false">All</button>
-        <button mat-button [class.active]="showOwnedOnly" (click)="showOwnedOnly = true">Current Squad</button>
-      </div>
-    </div>
-    <div class="table-container">
-      <table mat-table [dataSource]="filteredPlayers" aria-label="Team players statistics">
+    <!-- Player Stats Tab -->
+    <mat-tab label="Player stats">
 
-        <ng-container matColumnDef="photo">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let player">
-            <img [appPlayerImage]="player.code" alt="{{player.name}}" class="player-photo player-photo--clickable"
-                 (click)="openPlayerDetails(player)" [attr.aria-label]="'View details for ' + player.name">
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Player</th>
-          <td mat-cell *matCellDef="let player">{{ player.name }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="position">
-          <th mat-header-cell *matHeaderCellDef>Pos</th>
-          <td mat-cell *matCellDef="let player">
-            <app-position-badge [position]="player.position"></app-position-badge>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="avgPoints">
-          <th mat-header-cell *matHeaderCellDef>Avg</th>
-          <td mat-cell *matCellDef="let player">
-            <div class="circle" [ngStyle]="getNameColorStyle(player.avgPoints, player.position)">
-              {{ player.avgPoints | number: '1.1-1' }}
+      <!-- Mobile card list (< 600px) -->
+      <div class="mobile-card-list">
+        <ng-container *ngFor="let player of players; trackBy: trackByPlayerCode">
+          <div class="player-card">
+            <img [appPlayerImage]="player.code" [alt]="player.name" class="card-photo">
+            <div class="card-body">
+              <div class="card-name">{{ player.name }}</div>
+              <div class="card-meta">{{ player.position }} · {{ player.teamName }}</div>
             </div>
-          </td>
+            <div class="card-stats">
+              <span class="avg-badge" [ngStyle]="getNameColorStyle(player.avgPoints, player.position)">{{ player.avgPoints | number:'1.1-1' }}</span>
+              <div class="card-total">{{ player.totalPointsForTeam }} pts</div>
+            </div>
+            <div class="card-actions">
+              <button mat-icon-button (click)="openPlayerDetails(player)" [attr.aria-label]="'Details for ' + player.name" matTooltip="Details">
+                <mat-icon>info</mat-icon>
+              </button>
+              <button mat-icon-button (click)="openCompareDialog(player)" [attr.aria-label]="'Compare ' + player.name" matTooltip="Compare">
+                <mat-icon>balance</mat-icon>
+              </button>
+            </div>
+          </div>
         </ng-container>
+      </div>
 
-        <ng-container matColumnDef="timesSelected">
-          <th mat-header-cell *matHeaderCellDef>Selected</th>
-          <td mat-cell *matCellDef="let player">{{ player.timesSelected }}</td>
-        </ng-container>
+      <!-- Player Stats Table -->
+      <div class="player-stats-card">
+        <div class="player-stats-header-row">
+          <div class="player-stats-header">PLAYER STATS</div>
+          <div class="ownership-toggle">
+            <button mat-button [class.active]="!showOwnedOnly" (click)="showOwnedOnly = false">All</button>
+            <button mat-button [class.active]="showOwnedOnly" (click)="showOwnedOnly = true">Current Squad</button>
+          </div>
+        </div>
+        <div class="table-container">
+          <table mat-table [dataSource]="filteredPlayers" aria-label="Team players statistics">
 
-        <ng-container matColumnDef="timesCaptained">
-          <th mat-header-cell *matHeaderCellDef>Capt.</th>
-          <td mat-cell *matCellDef="let player">{{ player.position === Position.GKP || player.position === Position.Manager ? '-' : player.timesCaptained }}</td>
-        </ng-container>
+            <ng-container matColumnDef="photo">
+              <th mat-header-cell *matHeaderCellDef></th>
+              <td mat-cell *matCellDef="let player">
+                <img [appPlayerImage]="player.code" alt="{{player.name}}" class="player-photo player-photo--clickable"
+                     (click)="openPlayerDetails(player)" [attr.aria-label]="'View details for ' + player.name">
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="timesViceCaptained">
-          <th mat-header-cell *matHeaderCellDef>VC</th>
-          <td mat-cell *matCellDef="let player">{{ player.position === Position.GKP || player.position === Position.Manager ? '-' : player.timesViceCaptained }}</td>
-        </ng-container>
+            <ng-container matColumnDef="name">
+              <th mat-header-cell *matHeaderCellDef>Player</th>
+              <td mat-cell *matCellDef="let player">{{ player.name }}</td>
+            </ng-container>
 
-        <ng-container matColumnDef="benchPoints">
-          <th mat-header-cell *matHeaderCellDef>Bench Pts</th>
-          <td mat-cell *matCellDef="let player">{{ player.position === Position.Manager ? '-' : player.benchPoints }}</td>
-        </ng-container>
+            <ng-container matColumnDef="position">
+              <th mat-header-cell *matHeaderCellDef>Pos</th>
+              <td mat-cell *matCellDef="let player">
+                <app-position-badge [position]="player.position"></app-position-badge>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="timesOnBench">
-          <th mat-header-cell *matHeaderCellDef>On Bench</th>
-          <td mat-cell *matCellDef="let player">{{ player.position === Position.Manager ? '-' : player.timesOnBench }}</td>
-        </ng-container>
+            <ng-container matColumnDef="avgPoints">
+              <th mat-header-cell *matHeaderCellDef>Avg</th>
+              <td mat-cell *matCellDef="let player">
+                <div class="circle" [ngStyle]="getNameColorStyle(player.avgPoints, player.position)">
+                  {{ player.avgPoints | number: '1.1-1' }}
+                </div>
+              </td>
+            </ng-container>
 
-        <ng-container matColumnDef="playedPoints">
-          <th mat-header-cell *matHeaderCellDef>Played Pts</th>
-          <td mat-cell *matCellDef="let player">{{ player.playedPoints }}</td>
-        </ng-container>
+            <ng-container matColumnDef="timesSelected">
+              <th mat-header-cell *matHeaderCellDef>Selected</th>
+              <td mat-cell *matCellDef="let player">{{ player.timesSelected }}</td>
+            </ng-container>
 
-        <ng-container matColumnDef="totalPointsForTeam">
-          <th mat-header-cell *matHeaderCellDef>Total</th>
-          <td mat-cell *matCellDef="let player" class="total-cell">{{ player.totalPointsForTeam }}</td>
-        </ng-container>
+            <ng-container matColumnDef="timesCaptained">
+              <th mat-header-cell *matHeaderCellDef>Capt.</th>
+              <td mat-cell *matCellDef="let player">{{ player.position === Position.GKP || player.position === Position.Manager ? '-' : player.timesCaptained }}</td>
+            </ng-container>
 
-        <ng-container matColumnDef="compare">
-          <th mat-header-cell *matHeaderCellDef>Compare</th>
-          <td mat-cell *matCellDef="let player">
-            <button mat-icon-button (click)="openCompareDialog(player)" [attr.aria-label]="'Compare ' + player.name" matTooltip="Compare player">
-              <mat-icon>balance</mat-icon>
-            </button>
-          </td>
-        </ng-container>
+            <ng-container matColumnDef="timesViceCaptained">
+              <th mat-header-cell *matHeaderCellDef>VC</th>
+              <td mat-cell *matCellDef="let player">{{ player.position === Position.GKP || player.position === Position.Manager ? '-' : player.timesViceCaptained }}</td>
+            </ng-container>
 
-        <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-      </table>
-    </div>
-  </div>
+            <ng-container matColumnDef="benchPoints">
+              <th mat-header-cell *matHeaderCellDef>Bench Pts</th>
+              <td mat-cell *matCellDef="let player">{{ player.position === Position.Manager ? '-' : player.benchPoints }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="timesOnBench">
+              <th mat-header-cell *matHeaderCellDef>On Bench</th>
+              <td mat-cell *matCellDef="let player">{{ player.position === Position.Manager ? '-' : player.timesOnBench }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="playedPoints">
+              <th mat-header-cell *matHeaderCellDef>Played Pts</th>
+              <td mat-cell *matCellDef="let player">{{ player.playedPoints }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="totalPointsForTeam">
+              <th mat-header-cell *matHeaderCellDef>Total</th>
+              <td mat-cell *matCellDef="let player" class="total-cell">{{ player.totalPointsForTeam }}</td>
+            </ng-container>
+
+            <ng-container matColumnDef="compare">
+              <th mat-header-cell *matHeaderCellDef>Compare</th>
+              <td mat-cell *matCellDef="let player">
+                <button mat-icon-button (click)="openCompareDialog(player)" [attr.aria-label]="'Compare ' + player.name" matTooltip="Compare player">
+                  <mat-icon>balance</mat-icon>
+                </button>
+              </td>
+            </ng-container>
+
+            <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
+            <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+          </table>
+        </div>
+      </div>
+
+    </mat-tab>
+
+    <!-- vs Dream Team Tab -->
+    <mat-tab label="vs Dream Team">
+      <div class="tab-content">
+        <app-dream-team-compare
+          *ngIf="dreamTeam"
+          [dreamTeam]="dreamTeam"
+          [userPlayers]="players"
+          [currentGameWeek]="user.currentGameWeek">
+        </app-dream-team-compare>
+        <app-loading-overlay *ngIf="isDreamTeamLoading" message="Loading dream team…"></app-loading-overlay>
+      </div>
+    </mat-tab>
+
+  </mat-tab-group>
 
 </div>

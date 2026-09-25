@@ -99,7 +99,7 @@
     </div>
     <div class="doughnut-title">{{ rankMode === 'overall' ? 'Overall Rank History' : 'GW Rank per Gameweek' }}</div>
     <div class="chart-container">
-      <canvas *ngIf="rankMode === 'overall'" baseChart [data]="rankHistoryChart" [options]="rankHistoryOptions" [type]="'line'"></canvas>
+      <canvas *ngIf="rankMode === 'overall'" baseChart [data]="rankHistoryChart" [options]="rankHistoryOptions" [plugins]="rankMidpointLabelsPlugin" [type]="'line'"></canvas>
       <canvas *ngIf="rankMode === 'gw'" baseChart [data]="gwRankChart" [options]="gwRankOptions" [type]="'line'"></canvas>
     </div>
   </div>

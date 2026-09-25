@@ -105,6 +105,7 @@ html, body {
 
 .mat-mdc-dialog-container .mdc-dialog__surface {
   border-radius: 18px !important;
+  overflow-x: hidden !important;
 }
 
 app-root {
