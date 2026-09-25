@@ -1,9 +1,11 @@
 package com.fpl.stats.controller;
 
+import com.fpl.stats.services.DreamTeamService;
 import com.fpl.stats.services.PlayerService;
 import com.fpl.stats.services.TransferImpactService;
 import com.fpl.stats.services.UserInfoService;
 import com.fpl.stats.services.dto.CompareDto;
+import com.fpl.stats.services.dto.DreamTeamDto;
 import com.fpl.stats.services.dto.PlayerDetailDto;
 import com.fpl.stats.services.dto.PlayerSummaryDto;
 import com.fpl.stats.services.dto.TransferImpactDto;
@@ -45,9 +47,10 @@ public class FplController {
     private static final CacheControl PLAYER_CACHE_CONTROL =
             CacheControl.maxAge(10, TimeUnit.MINUTES).cachePublic();
 
+    private final TransferImpactService transferImpactService;
+    private final DreamTeamService dreamTeamService;
     private final UserInfoService userInfoService;
     private final PlayerService playerService;
-    private final TransferImpactService transferImpactService;
 
     /**
      * Constructs a {@code FplController} with its required service dependencies.
@@ -55,12 +58,17 @@ public class FplController {
      * @param userInfoService       service for user team information
      * @param playerService         service for player data
      * @param transferImpactService service for computing transfer impact
+     * @param dreamTeamService      service for computing dream team lineups
      */
-    public FplController(UserInfoService userInfoService, PlayerService playerService,
-                         TransferImpactService transferImpactService) {
+    public FplController(
+            TransferImpactService transferImpactService,
+            DreamTeamService dreamTeamService,
+            UserInfoService userInfoService,
+            PlayerService playerService) {
+        this.transferImpactService = transferImpactService;
+        this.dreamTeamService = dreamTeamService;
         this.userInfoService = userInfoService;
         this.playerService = playerService;
-        this.transferImpactService = transferImpactService;
     }
 
     /**
@@ -129,5 +137,17 @@ public class FplController {
     public ResponseEntity<TransferImpactDto> getTransferImpact(@PathVariable long fplTeamId) {
         TransferImpactDto transferImpact = transferImpactService.getTransferImpact(fplTeamId);
         return ResponseEntity.ok().cacheControl(USER_CACHE_CONTROL).body(transferImpact);
+    }
+
+    /**
+     * Returns the all-time and last-5-weeks dream teams, each using the formation
+     * that maximises total player points.
+     *
+     * @return 200 with the dream team DTO
+     */
+    @GetMapping("/dream-team")
+    public ResponseEntity<DreamTeamDto> getDreamTeam() {
+        DreamTeamDto dreamTeamDto = dreamTeamService.getDreamTeam();
+        return ResponseEntity.ok().cacheControl(PLAYER_CACHE_CONTROL).body(dreamTeamDto);
     }
 }

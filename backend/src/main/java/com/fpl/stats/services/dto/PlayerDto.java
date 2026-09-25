@@ -14,6 +14,7 @@ public class PlayerDto implements Serializable {
     private String status;
     private double avgPoints;
     private int totalPointsForTeam;
+    private int totalPoints;
     private List<GameWeekPerformance> performances;
 
     public int getFplId() { return fplId; }
@@ -34,6 +35,8 @@ public class PlayerDto implements Serializable {
     public void setAvgPoints(double avgPoints) { this.avgPoints = avgPoints; }
     public int getTotalPointsForTeam() { return totalPointsForTeam; }
     public void setTotalPointsForTeam(int totalPointsForTeam) { this.totalPointsForTeam = totalPointsForTeam; }
+    public int getTotalPoints() { return totalPoints; }
+    public void setTotalPoints(int totalPoints) { this.totalPoints = totalPoints; }
     public List<GameWeekPerformance> getPerformances() { return performances; }
     public void setPerformances(List<GameWeekPerformance> performances) { this.performances = performances; }
 }

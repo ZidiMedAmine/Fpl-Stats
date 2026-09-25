@@ -36,4 +36,22 @@ public interface PlayerHistoryRepository extends JpaRepository<PlayerHistory, UU
      */
     @Query("SELECT ph FROM PlayerHistory ph JOIN FETCH ph.player JOIN FETCH ph.gameWeek WHERE ph.player.fplId IN :playerFplIds")
     List<PlayerHistory> findAllByPlayerFplIds(@Param("playerFplIds") Set<Integer> playerFplIds);
+
+    /**
+     * Aggregates player points across the given gameweeks.
+     *
+     * <p>Returns one row per player as {@code [fplId, code, webName, position, teamShortName, nowCost, sumPoints]},
+     * ordered by sumPoints descending. Used to build the last-N-weeks dream team candidates.</p>
+     *
+     * @param gameWeekNumbers the gameweek numbers to aggregate over
+     * @return projection rows ordered by total points descending
+     */
+    @Query("SELECT ph.player.fplId, ph.player.code, ph.player.webName, ph.player.position, " +
+           "ph.player.team.shortName, ph.player.nowCost, SUM(ph.points) " +
+           "FROM PlayerHistory ph " +
+           "WHERE ph.gameWeek.gameWeekNumber IN :gameWeekNumbers " +
+           "GROUP BY ph.player.fplId, ph.player.code, ph.player.webName, ph.player.position, " +
+           "ph.player.team.shortName, ph.player.nowCost " +
+           "ORDER BY SUM(ph.points) DESC")
+    List<Object[]> findPlayerPointsSumForGameWeeks(@Param("gameWeekNumbers") List<Integer> gameWeekNumbers);
 }

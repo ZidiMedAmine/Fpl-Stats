@@ -114,6 +114,7 @@ public final class PlayerMapper {
         playerDto.setCode(player.getCode());
         playerDto.setNowCost(player.getNowCost());
         playerDto.setStatus(player.getStatus());
+        playerDto.setTotalPoints(player.getTotalPoints());
         if (player.getTeam() != null) {
             playerDto.setTeamName(player.getTeam().getShortName());
         }
