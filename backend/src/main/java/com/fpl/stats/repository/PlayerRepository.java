@@ -34,4 +34,14 @@ public interface PlayerRepository extends JpaRepository<Player, UUID> {
     @EntityGraph(attributePaths = {"playerHistories", "playerHistories.gameWeek", "team"})
     @Query("SELECT p FROM Player p WHERE p.fplId IN :fplIds")
     List<Player> findByFplIdInWithHistory(@Param("fplIds") java.util.Collection<Integer> fplIds);
+
+    /**
+     * Returns all players of the given position sorted by total season points descending,
+     * with their team eagerly loaded.
+     *
+     * @param position one of GKP, DEF, MID, FWD
+     * @return players sorted by total points descending, team loaded
+     */
+    @Query("SELECT p FROM Player p JOIN FETCH p.team WHERE p.position = :position ORDER BY p.totalPoints DESC")
+    List<Player> findByPositionWithTeam(@Param("position") String position);
 }
