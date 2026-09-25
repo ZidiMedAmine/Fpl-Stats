@@ -1,0 +1,121 @@
+<div class="dream-compare" *ngIf="dreamTeam && activeResult">
+
+  <!-- KPI Cards -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <span class="kpi-value">{{ activeResult.totalPoints | number }}</span>
+      <span class="kpi-label">DREAM XI</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value">{{ userXiResult.totalPoints | number }}</span>
+      <span class="kpi-label">YOUR POINTS</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value" [class.kpi-value--negative]="gap < 0">{{ gap | number }}</span>
+      <span class="kpi-label">GAP</span>
+      <span class="kpi-sub">{{ gapPercent }}% of Dream XI</span>
+    </div>
+    <div class="kpi-card">
+      <span class="kpi-value">{{ overlap }} of 11</span>
+      <span class="kpi-label">OVERLAP</span>
+    </div>
+  </div>
+
+  <!-- Comparison container -->
+  <div class="comparison-card">
+
+    <!-- Window toggle + legend row -->
+    <div class="toolbar-row">
+      <div class="window-toggle">
+        <button class="toggle-btn" [class.toggle-btn--active]="!isLast5Weeks" (click)="selectWindow('allTime')">All time</button>
+        <button class="toggle-btn" [class.toggle-btn--active]="isLast5Weeks" (click)="selectWindow('last5Weeks')">Last 5 GWs</button>
+      </div>
+    </div>
+
+    <!-- Comparison header -->
+    <div class="comparison-header">
+      <div class="xi-header xi-header--user">
+        <span class="xi-title">YOUR XI</span>
+        <span class="xi-formation">{{ userXiResult.formation }}</span>
+        <span class="xi-pts">{{ userXiResult.totalPoints | number }} pts</span>
+      </div>
+      <div class="xi-diff-label">DIFF</div>
+      <div class="xi-header xi-header--dream">
+        <span class="xi-pts">{{ activeResult.totalPoints | number }} pts</span>
+        <span class="xi-formation dream">{{ activeResult.formation }}</span>
+        <span class="xi-title">DREAM XI</span>
+      </div>
+    </div>
+
+    <!-- Position sections -->
+    <ng-container *ngFor="let section of positionSections; trackBy: trackBySectionPosition">
+
+      <!-- Position group header -->
+      <div class="position-header">
+        <div class="position-header__user">
+          <span class="position-dot"></span>
+          <span class="position-label">{{ section.label }}</span>
+          <span class="position-pts">{{ section.userCount }} players · {{ section.userTotal | number }} pts</span>
+        </div>
+        <div class="position-diff"
+             [class.position-diff--positive]="section.positionDiff > 0"
+             [class.position-diff--negative]="section.positionDiff < 0">
+          {{ section.positionDiff > 0 ? '+' : '' }}{{ section.positionDiff | number }}
+        </div>
+        <div class="position-header__dream">
+          <span class="position-pts">{{ section.dreamCount }} players · {{ section.dreamTotal | number }} pts</span>
+        </div>
+      </div>
+
+      <!-- Player rows -->
+      <div class="player-row" *ngFor="let row of section.rows; trackBy: trackByRowIndex">
+
+        <!-- User side -->
+        <div class="player-cell player-cell--user"
+             [class.player-cell--shared]="row.isShared"
+             [class.player-cell--solo]="!row.isShared && row.userPlayer">
+          <ng-container *ngIf="row.userPlayer; else emptyUserCell">
+            <img [appPlayerImage]="row.userPlayer.code" class="player-shirt" [alt]="row.userPlayer.webName">
+            <div class="player-info">
+              <span class="player-name">{{ row.userPlayer.webName }}</span>
+              <span class="player-meta">{{ row.userPlayer.teamName }} · £{{ row.userPlayer.nowCost | number:'1.1-1' }}m</span>
+            </div>
+            <span *ngIf="row.isShared" class="badge badge--in-both">In both</span>
+            <span class="player-pts">{{ row.userPlayer.points }}</span>
+          </ng-container>
+          <ng-template #emptyUserCell><div class="empty-cell"></div></ng-template>
+        </div>
+
+        <!-- Dream side -->
+        <div class="player-cell player-cell--dream"
+             [class.player-cell--shared]="row.isShared"
+             [class.player-cell--missing]="!row.isShared && row.dreamPlayer">
+          <ng-container *ngIf="row.dreamPlayer">
+            <img [appPlayerImage]="row.dreamPlayer.code" class="player-shirt" [alt]="row.dreamPlayer.webName">
+            <div class="player-info">
+              <span class="player-name">{{ row.dreamPlayer.webName }}</span>
+              <span class="player-meta">{{ row.dreamPlayer.teamName }} · £{{ row.dreamPlayer.nowCost | number:'1.1-1' }}m</span>
+            </div>
+            <span *ngIf="row.isShared" class="badge badge--in-both">In both</span>
+            <span *ngIf="!row.isShared" class="badge badge--missing">Missing</span>
+            <span class="player-pts">{{ row.dreamPlayer.points }}</span>
+          </ng-container>
+        </div>
+
+      </div>
+    </ng-container>
+
+    <!-- XI Total row -->
+    <div class="xi-total-row">
+      <div class="xi-total__user">
+        <span class="xi-total-label">XI total</span>
+        <span class="xi-total-pts">{{ userXiResult.totalPoints | number }}</span>
+      </div>
+      <div class="xi-total__dream">
+        <span class="xi-total-pts">{{ activeResult.totalPoints | number }}</span>
+        <span class="xi-total-label">XI total</span>
+      </div>
+    </div>
+
+  </div>
+</div>

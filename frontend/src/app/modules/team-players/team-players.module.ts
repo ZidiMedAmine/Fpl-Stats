@@ -13,7 +13,9 @@ import {MatButtonModule} from "@angular/material/button";
 import {MatDialogModule} from "@angular/material/dialog";
 import {MatTooltipModule} from "@angular/material/tooltip";
 import {MatSnackBarModule} from "@angular/material/snack-bar";
+import {MatTabsModule} from "@angular/material/tabs";
 import { PerformanceChartsComponent } from './performance-charts/performance-charts.component';
+import { DreamTeamCompareComponent } from './dream-team-compare/dream-team-compare.component';
 import {BaseChartDirective} from "ng2-charts";
 import {SharedModule} from "../../shared/shared.module";
 import {ComparePlayersModule} from "../compare-players/compare-players.module";
@@ -22,7 +24,7 @@ import {CompareTeamsModule} from "../compare-teams/compare-teams.module";
 
 @NgModule({
   declarations: [
-    TeamPlayersComponent, PlayerDetailsComponent, PerformanceChartsComponent
+    TeamPlayersComponent, PlayerDetailsComponent, PerformanceChartsComponent, DreamTeamCompareComponent
   ],
   imports: [
     CommonModule,
@@ -30,6 +32,7 @@ import {CompareTeamsModule} from "../compare-teams/compare-teams.module";
     MatTableModule,
     MatToolbarModule,
     MatProgressSpinnerModule,
+    MatTabsModule,
     TeamPlayersRoutingModule,
     MatIconModule,
     MatButtonModule,

@@ -100,10 +100,89 @@
       height: 1.5px;
     }
 
+    &__stats {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 16px;
+      width: 100%;
+    }
+
     &__rank-badge {
       margin-left: 0;
     }
   }
+}
+
+// ── Tab Group ────────────────────────────────────────────────────────
+
+.tab-group {
+  background: transparent;
+}
+
+::ng-deep .tab-group {
+  .mat-mdc-tab-header {
+    background: #fff;
+    border-radius: 12px 12px 0 0;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+    margin-bottom: 0;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  // Tabs do not stretch — they stay compact, left-aligned
+  .mat-mdc-tab-list {
+    flex-grow: 0;
+  }
+
+  .mat-mdc-tab {
+    min-width: unset;
+    padding: 0 20px;
+    height: 44px;
+    flex-grow: 0;
+    flex-shrink: 0;
+  }
+
+  .mat-mdc-tab .mdc-tab__text-label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--color-text-muted) !important;
+    letter-spacing: 0.2px;
+  }
+
+  .mat-mdc-tab.mdc-tab--active .mdc-tab__text-label {
+    color: var(--color-primary-dark) !important;
+  }
+
+  // Override every MDC/Material token that controls tab colours
+  --mdc-tab-indicator-active-indicator-color: var(--color-primary-dark);
+  --mat-tab-header-active-indicator-color: var(--color-primary-dark);
+  --mat-tab-header-active-focus-indicator-color: var(--color-primary-dark);
+  --mat-tab-header-active-hover-indicator-color: var(--color-primary-dark);
+  --mat-tab-header-active-label-text-color: var(--color-primary-dark);
+  --mat-tab-header-active-focus-label-text-color: var(--color-primary-dark);
+  --mat-tab-header-active-hover-label-text-color: var(--color-primary-dark);
+  --mat-tab-header-inactive-label-text-color: var(--color-text-muted);
+  --mat-tab-header-inactive-focus-label-text-color: var(--color-text-muted);
+  --mat-tab-header-inactive-hover-label-text-color: var(--color-text-muted);
+  --mdc-secondary-navigation-tab-container-color: transparent;
+
+  .mat-mdc-tab-indicator .mdc-tab-indicator__content--underline {
+    border-color: var(--color-primary-dark) !important;
+  }
+
+  // Ripple colour
+  .mat-mdc-tab .mat-ripple-element,
+  .mat-mdc-tab .mdc-tab__ripple::before {
+    background-color: var(--color-primary-dark);
+  }
+
+  .mat-mdc-tab-body-wrapper {
+    padding-top: 16px;
+  }
+}
+
+.tab-content {
+  position: relative;
+  min-height: 200px;
 }
 
 // ── Player Stats Card ────────────────────────────────────────────────

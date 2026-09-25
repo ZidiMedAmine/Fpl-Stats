@@ -90,16 +90,16 @@
 
 .chart-tabs {
   display: flex;
-  background: var(--color-bg-light);
-  border-radius: 999px;
-  padding: 3px;
-  gap: 2px;
+  flex-wrap: wrap;
+  gap: 4px;
+  background: transparent;
+  padding: 0;
 }
 
 .chart-tab {
   border: none;
   background: transparent;
-  padding: 6px 14px;
+  padding: 5px 14px;
   border-radius: 999px;
   font-size: 12px;
   font-weight: 500;
@@ -114,14 +114,15 @@
   }
 
   &:hover:not(.active) {
-    background: rgba(0, 0, 0, 0.06);
+    background: var(--color-bg-hover);
+    color: var(--color-primary-dark);
   }
 }
 
 /* ── Chart containers ─────────────────────────────────────────────── */
 .chart-container {
   position: relative;
-  height: 260px;
+  height: 360px;
 
   canvas {
     width: 100% !important;
@@ -150,7 +151,7 @@
 
   canvas {
     width: 100% !important;
-    height: 280px !important;
+    height: 380px !important;
   }
 
 }
@@ -159,7 +160,7 @@
   min-width: 320px;
 
   canvas {
-    height: 300px !important;
+    height: 400px !important;
   }
 }
 
@@ -380,9 +381,23 @@
 }
 
 @media (max-width: 768px) {
+  .performance-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
   .chart-tabs {
-    flex-wrap: wrap;
-    border-radius: 12px;
+    width: 100%;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 4px;
+
+    &::-webkit-scrollbar {
+      display: none;
+    }
   }
 
   .doughnut-row {
@@ -395,6 +410,12 @@
   }
 
   .insights-row {
-    flex-direction: column;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .insight-card {
+    min-width: unset;
+    flex: unset;
   }
 }

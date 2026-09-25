@@ -5,6 +5,7 @@ import {map, shareReplay} from 'rxjs/operators';
 import {UserInfo} from '../models/UserInfo.model';
 import {CompareResult} from '../models/compare.model';
 import {TransferImpact} from '../models/transfer-impact.model';
+import {DreamTeam} from '../models/dream-team.model';
 import {environment} from '../../../environments/environment';
 
 /**
@@ -19,6 +20,7 @@ export class TeamService {
 
   private readonly teamCache = new Map<number, Observable<UserInfo>>();
   private readonly compareCache = new Map<string, Observable<CompareResult>>();
+  private dreamTeamCache: Observable<DreamTeam> | null = null;
 
   constructor(private readonly http: HttpClient) {}
 
@@ -59,6 +61,19 @@ export class TeamService {
    */
   getTransferImpact(teamId: number): Observable<TransferImpact> {
     return this.http.get<TransferImpact>(`${this.apiUrl}/user-info/${teamId}/transfer-impact`);
+  }
+
+  /**
+   * Returns the all-time and last-5-weeks dream team lineups.
+   * Result is cached for the lifetime of the service instance.
+   *
+   * @returns An observable emitting the {@link DreamTeam}.
+   */
+  getDreamTeam(): Observable<DreamTeam> {
+    if (!this.dreamTeamCache) {
+      this.dreamTeamCache = this.http.get<DreamTeam>(`${this.apiUrl}/dream-team`).pipe(shareReplay(1));
+    }
+    return this.dreamTeamCache;
   }
 
   /**
