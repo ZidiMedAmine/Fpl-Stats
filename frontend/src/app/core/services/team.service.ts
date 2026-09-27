@@ -64,7 +64,7 @@ export class TeamService {
    * @param teamId - The FPL team ID to fetch.
    * @returns An observable emitting the {@link TeamChartData}.
    */
-  getTeamChartData(teamId: number): Observable<TeamChartData> {
+  getTeamChartData(teamId: number): Observable<TeamChartData>   {
     if (!this.chartDataCache.has(teamId)) {
       this.chartDataCache.set(teamId,
         this.http.get<TeamChartData>(`${this.apiUrl}/user-info/${teamId}/chart-data`).pipe(shareReplay(1))

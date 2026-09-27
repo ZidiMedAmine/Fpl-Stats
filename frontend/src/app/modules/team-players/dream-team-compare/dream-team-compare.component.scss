@@ -380,16 +380,116 @@
 
 // ── Responsive ──────────────────────────────────────────────────────
 @media (max-width: 640px) {
+  // KPI: 2×2 grid
+  .kpi-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
   .kpi-card {
-    min-width: calc(50% - 6px);
+    min-width: unset;
+    padding: 12px 14px;
+  }
+
+  .kpi-value {
+    font-size: 1.3rem;
+  }
+
+  // Comparison header: keep 3-col grid, reduce padding and font sizes
+  .comparison-header {
+    padding: 10px 8px;
+    grid-template-columns: 1fr 40px 1fr;
+  }
+
+  .xi-header {
+    gap: 4px;
+    flex-wrap: wrap;
+  }
+
+  .xi-title {
+    font-size: 10px;
+  }
+
+  .xi-formation {
+    font-size: 11px;
+    padding: 2px 5px;
+  }
+
+  .xi-pts {
+    font-size: 11px;
+    margin-left: 0;
+  }
+
+  .xi-diff-label {
+    font-size: 9px;
+  }
+
+  // Position header: keep 3-col grid, reduce spacing
+  .position-header {
+    padding: 6px 8px;
+    grid-template-columns: 1fr 40px 1fr;
+  }
+
+  .position-label {
+    font-size: 10px;
+  }
+
+  .position-pts {
+    font-size: 10px;
+  }
+
+  .position-diff {
+    font-size: 11px;
+  }
+
+  // Player rows: keep side-by-side, reduce padding and element sizes
+  .player-row {
+    padding: 4px 8px;
+    gap: 4px;
+  }
+
+  .player-cell {
+    padding: 6px 6px;
+    gap: 5px;
+    min-height: unset;
+  }
+
+  .player-shirt {
+    width: 28px;
+    height: 36px;
   }
 
   .player-name {
-    max-width: 80px;
+    font-size: 11px;
+    max-width: none;
   }
 
   .player-meta {
     display: none;
+  }
+
+  .player-pts {
+    font-size: 12px;
+    margin-right: 0;
+  }
+
+  .badge {
+    font-size: 9px;
+    padding: 2px 5px;
+  }
+
+  // XI total row
+  .xi-total-row {
+    padding: 10px 8px;
+  }
+
+  .xi-total-pts {
+    font-size: 13px;
+  }
+
+  .xi-total-label {
+    font-size: 10px;
   }
 
   .legend-item--label {
