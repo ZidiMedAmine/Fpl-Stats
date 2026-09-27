@@ -2,7 +2,7 @@ import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, NgZone, O
 import { BaseChartDirective } from 'ng2-charts';
 import { Chart, ChartConfiguration, ChartDataset, Plugin, registerables, ScriptableLineSegmentContext } from 'chart.js';
 import ChartDataLabels, { Context } from 'chartjs-plugin-datalabels';
-import { UserInfo } from '../../../core/models/UserInfo.model';
+import { GwFormationLoss, UserInfo } from '../../../core/models/UserInfo.model';
 import { Position } from '../../../core/models/player.model';
 import { TransferImpact } from '../../../core/models/transfer-impact.model';
 import { CHART_COLORS } from '../../../core/chart-colors.constants';
@@ -513,6 +513,11 @@ export class PerformanceChartsComponent implements OnChanges {
   formationGwPointsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   formationSummary: { mostUsed: string; mostUsedCount: number; bestAvg: string; bestAvgPts: number } = { mostUsed: '-', mostUsedCount: 0, bestAvg: '-', bestAvgPts: 0 };
 
+  formationLossChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
+  formationLossOptions: ChartConfiguration<'bar'>['options'];
+  formationLossSummary = { totalLost: 0, worstGw: 0, worstGwLoss: 0, optimalGws: 0 };
+  private formationLossData: GwFormationLoss[] = [];
+
   transferMode: 'swaps' | 'hits' = 'swaps';
   transferSwapsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
   transferHitsChart: ChartConfiguration<'bar'>['data'] = { labels: [], datasets: [] };
@@ -555,6 +560,7 @@ export class PerformanceChartsComponent implements OnChanges {
   constructor(private readonly zone: NgZone, private readonly cdr: ChangeDetectorRef) {
     this.transferSwapsOptions = this.buildTransferBarOptions('Points from Swaps', false);
     this.transferHitsOptions = this.buildTransferBarOptions('Hit Penalty', true);
+    this.formationLossOptions = this.buildFormationLossOptions();
     this.weeklyBarOptions = {
       responsive: true,
       maintainAspectRatio: false,
@@ -603,6 +609,7 @@ export class PerformanceChartsComponent implements OnChanges {
       this.prepareBenchWasted();
       this.prepareBestGW();
       this.prepareFormationCharts();
+      this.prepareFormationLossChart();
     }
     if (this.transferImpact) {
       this.prepareTransferCharts();
@@ -1431,5 +1438,107 @@ export class PerformanceChartsComponent implements OnChanges {
     if (mode !== 'cumulative') return [...rawData];
     let running = 0;
     return rawData.map(value => { running += value; return running; });
+  }
+
+  /**
+   * Prepares the formation loss bar chart and summary KPIs from the backend-computed
+   * per-GW optimal lineup data.
+   */
+  private prepareFormationLossChart(): void {
+    const loss = this.user.formationLoss ?? [];
+    this.formationLossData = loss;
+
+    const labels = loss.map(item => `GW${item.gameWeek}`);
+    const pointsLost = loss.map(item => item.pointsLost);
+    const colors = pointsLost.map(value => value > 0 ? CHART_COLORS.danger : CHART_COLORS.success);
+
+    this.formationLossChart = {
+      labels,
+      datasets: [{
+        data: pointsLost,
+        backgroundColor: colors,
+        borderRadius: 4,
+        label: 'Points Lost'
+      }]
+    };
+
+    this.formationLossSummary = this.computeFormationLossSummary(loss);
+  }
+
+  /**
+   * Computes summary KPIs from the formation loss data.
+   *
+   * @param loss - The per-GW formation loss records.
+   * @returns Summary object with total lost, worst GW, and optimal GW count.
+   */
+  private computeFormationLossSummary(loss: GwFormationLoss[]): typeof this.formationLossSummary {
+    if (loss.length === 0) return { totalLost: 0, worstGw: 0, worstGwLoss: 0, optimalGws: 0 };
+
+    const totalLost = loss.reduce((sum, item) => sum + item.pointsLost, 0);
+    const worst = loss.reduce((max, item) => item.pointsLost > max.pointsLost ? item : max, loss[0]);
+    const optimalGws = loss.filter(item => item.pointsLost === 0).length;
+
+    return { totalLost, worstGw: worst.gameWeek, worstGwLoss: worst.pointsLost, optimalGws };
+  }
+
+  /**
+   * Builds the Chart.js options for the formation loss bar chart.
+   * The tooltip shows the formation change and player swaps for each GW.
+   *
+   * @returns Bar chart options with custom tooltip callbacks.
+   */
+  private buildFormationLossOptions(): ChartConfiguration<'bar'>['options'] {
+    return {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        datalabels: {
+          color: CHART_COLORS.ui.white,
+          font: { size: 10, weight: 'bold' },
+          anchor: 'end',
+          align: 'start',
+          formatter: (value: number) => value > 0 ? `-${value}` : ''
+        },
+        tooltip: {
+          callbacks: {
+            title: (items) => `GW${this.formationLossData[items[0]?.dataIndex]?.gameWeek ?? ''}`,
+            label: (item) => this.buildFormationLossTooltip(item.dataIndex)
+          }
+        }
+      },
+      scales: {
+        x: { ticks: { color: CHART_COLORS.ui.axisLabel }, grid: { display: false } },
+        y: {
+          beginAtZero: true,
+          ticks: { color: CHART_COLORS.ui.axisLabel },
+          grid: { color: CHART_COLORS.ui.gridLine }
+        }
+      }
+    };
+  }
+
+  /**
+   * Builds the tooltip body lines for a single GW's formation loss entry.
+   *
+   * @param dataIndex - The chart data index corresponding to the hovered bar.
+   * @returns Array of tooltip lines.
+   */
+  private buildFormationLossTooltip(dataIndex: number): string[] {
+    const item = this.formationLossData[dataIndex];
+    if (!item) return [];
+
+    const lines: string[] = [
+      ` Points lost: ${item.pointsLost}`,
+      ` Actual: ${item.actualPoints} pts (${item.actualFormation})`,
+      ` Optimal: ${item.optimalPoints} pts (${item.optimalFormation})`,
+    ];
+    if (item.playersToStart.length > 0) {
+      lines.push(` Should start: ${item.playersToStart.join(', ')}`);
+    }
+    if (item.playersToBench.length > 0) {
+      lines.push(` Should bench: ${item.playersToBench.join(', ')}`);
+    }
+    return lines;
   }
 }

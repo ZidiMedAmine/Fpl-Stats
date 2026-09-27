@@ -10,11 +10,16 @@ import com.fpl.stats.repository.PlayerRepository;
 import com.fpl.stats.repository.UserPickRepository;
 import com.fpl.stats.repository.UserTeamRankHistoryRepository;
 import com.fpl.stats.repository.UserTeamRepository;
+import com.fpl.stats.services.FormationOptimizationService;
 import com.fpl.stats.services.UserInfoService;
 import com.fpl.stats.services.dto.CompareDto;
+import com.fpl.stats.services.dto.GwFormationLossDto;
 import com.fpl.stats.services.dto.PlayerDto;
+import com.fpl.stats.services.dto.PlayerStubDto;
 import com.fpl.stats.services.dto.RankHistoryDto;
+import com.fpl.stats.services.dto.TeamChartDataDto;
 import com.fpl.stats.services.dto.UserTeamDto;
+import com.fpl.stats.services.dto.UserTeamSummaryDto;
 import com.fpl.stats.services.mapper.PlayerMapper;
 import com.fpl.stats.services.mapper.UserTeamMapper;
 import org.slf4j.Logger;
@@ -45,6 +50,7 @@ public class UserInfoServiceImpl implements UserInfoService {
     private final UserPickRepository userPickRepository;
     private final GameWeekRepository gameWeekRepository;
     private final PlayerRepository playerRepository;
+    private final FormationOptimizationService formationOptimizationService;
 
     /**
      * Constructs a {@code UserInfoServiceImpl} with its required repository dependencies.
@@ -54,28 +60,97 @@ public class UserInfoServiceImpl implements UserInfoService {
      * @param userPickRepository            repository for user gameweek picks
      * @param gameWeekRepository            repository for gameweek data and averages
      * @param playerRepository              repository for player entities with history
+     * @param formationOptimizationService  service that computes per-GW optimal lineup points
      */
     public UserInfoServiceImpl(UserTeamRankHistoryRepository userTeamRankHistoryRepository,
                                UserTeamRepository userTeamRepository,
                                UserPickRepository userPickRepository,
                                GameWeekRepository gameWeekRepository,
-                               PlayerRepository playerRepository) {
+                               PlayerRepository playerRepository,
+                               FormationOptimizationService formationOptimizationService) {
         this.userTeamRankHistoryRepository = userTeamRankHistoryRepository;
         this.userTeamRepository = userTeamRepository;
         this.userPickRepository = userPickRepository;
         this.gameWeekRepository = gameWeekRepository;
         this.playerRepository = playerRepository;
+        this.formationOptimizationService = formationOptimizationService;
     }
 
     /**
      * {@inheritDoc}
      */
     @Override
-    public UserTeamDto getUserTeamInfo(long fplTeamId) {
-        log.debug("Fetching team info for fplTeamId={}", fplTeamId);
+    public UserTeamSummaryDto getUserTeamSummary(long fplTeamId) {
+        log.info("Fetching team summary for fplTeamId={}", fplTeamId);
         UserTeam userTeam = userTeamRepository.findByFplTeamId(fplTeamId)
                 .orElseThrow(() -> new TeamNotFoundException(fplTeamId));
-        return buildUserTeamDto(userTeam);
+
+        List<UserPick> picks = userPickRepository.findAllByUserTeam(userTeam);
+
+        List<PlayerStubDto> playerStubs = picks.stream()
+                .collect(Collectors.toMap(
+                        pick -> pick.getPlayer().getFplId(),
+                        UserPick::getPlayer,
+                        (existing, replacement) -> existing))
+                .values().stream()
+                .map(PlayerMapper::toPlayerStubDto)
+                .sorted(Comparator.comparing(PlayerStubDto::getPosition))
+                .toList();
+
+        List<UserTeamRankHistory> rankHistory =
+                userTeamRankHistoryRepository.findAllByUserTeam_FplTeamIdOrderByGameWeekAsc(fplTeamId);
+        Integer rankChange = computeRankChange(rankHistory);
+
+        return UserTeamMapper.toSummaryDto(userTeam, playerStubs, rankChange, rankHistory);
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public TeamChartDataDto getTeamChartData(long fplTeamId) {
+        log.info("Fetching chart data for fplTeamId={}", fplTeamId);
+        UserTeam userTeam = userTeamRepository.findByFplTeamId(fplTeamId)
+                .orElseThrow(() -> new TeamNotFoundException(fplTeamId));
+
+        List<UserPick> picks = userPickRepository.findAllByUserTeam(userTeam);
+
+        Map<Integer, List<UserPick>> picksByPlayer = picks.stream()
+                .collect(Collectors.groupingBy(pick -> pick.getPlayer().getFplId()));
+
+        Map<Integer, Player> enrichedPlayers = playerRepository
+                .findByFplIdInWithHistory(picksByPlayer.keySet())
+                .stream()
+                .collect(Collectors.toMap(Player::getFplId, p -> p));
+
+        List<PlayerDto> playerDtos = picksByPlayer.entrySet().stream()
+                .map(entry -> PlayerMapper.toPlayerDto(entry.getValue(), enrichedPlayers.get(entry.getKey())))
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(PlayerDto::getPosition))
+                .toList();
+
+        Map<Integer, Integer> gameWeekAverages = gameWeekRepository.findAllGameWeekAverages().stream()
+                .collect(Collectors.toMap(
+                        row -> (Integer) row[0],
+                        row -> (Integer) row[1]
+                ));
+
+        Map<Integer, Integer> gameWeekHighScores = gameWeekRepository.findAllGameWeekHighScores().stream()
+                .collect(Collectors.toMap(
+                        row -> (Integer) row[0],
+                        row -> (Integer) row[1]
+                ));
+
+        List<GwFormationLossDto> formationLoss =
+                formationOptimizationService.computeFormationLoss(picks, enrichedPlayers);
+
+        TeamChartDataDto chartData = new TeamChartDataDto();
+        chartData.setFplTeamId(fplTeamId);
+        chartData.setPlayers(playerDtos);
+        chartData.setGameWeekAverages(gameWeekAverages);
+        chartData.setGameWeekHighScores(gameWeekHighScores);
+        chartData.setFormationLoss(formationLoss);
+        return chartData;
     }
 
     /**
@@ -83,7 +158,7 @@ public class UserInfoServiceImpl implements UserInfoService {
      */
     @Override
     public CompareDto compareTeams(long fplTeamId1, long fplTeamId2) {
-        log.debug("Comparing teams fplTeamId1={} and fplTeamId2={}", fplTeamId1, fplTeamId2);
+        log.info("Comparing teams fplTeamId1={} and fplTeamId2={}", fplTeamId1, fplTeamId2);
         UserTeam userTeam1 = userTeamRepository.findByFplTeamId(fplTeamId1)
                 .orElseThrow(() -> new TeamNotFoundException(fplTeamId1));
         UserTeam userTeam2 = userTeamRepository.findByFplTeamId(fplTeamId2)
@@ -168,7 +243,10 @@ public class UserInfoServiceImpl implements UserInfoService {
 
         Integer rankChange = computeRankChange(rankHistory);
 
-        return UserTeamMapper.toDto(userTeam, playerDtos, gameWeekAverages, gameWeekHighScores, rankChange, rankHistory);
+        List<GwFormationLossDto> formationLoss =
+                formationOptimizationService.computeFormationLoss(picks, enrichedPlayers);
+
+        return UserTeamMapper.toDto(userTeam, playerDtos, gameWeekAverages, gameWeekHighScores, rankChange, rankHistory, formationLoss);
     }
 
     /**

@@ -8,8 +8,9 @@ import com.fpl.stats.services.dto.CompareDto;
 import com.fpl.stats.services.dto.DreamTeamDto;
 import com.fpl.stats.services.dto.PlayerDetailDto;
 import com.fpl.stats.services.dto.PlayerSummaryDto;
+import com.fpl.stats.services.dto.TeamChartDataDto;
 import com.fpl.stats.services.dto.TransferImpactDto;
-import com.fpl.stats.services.dto.UserTeamDto;
+import com.fpl.stats.services.dto.UserTeamSummaryDto;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -72,15 +73,29 @@ public class FplController {
     }
 
     /**
-     * Returns the full team information for the given FPL team ID.
+     * Returns lightweight team summary for the given FPL team ID.
+     * Includes team metadata, rank history, and player stubs — no player history loaded.
      *
      * @param fplTeamId the FPL team identifier
-     * @return 200 with the team DTO, or 404 if the team is not found
+     * @return 200 with the summary DTO, or 404 if the team is not found
      */
     @GetMapping("/user-info/{fplTeamId}")
-    public ResponseEntity<UserTeamDto> getUserTeamInfo(@PathVariable long fplTeamId) {
-        UserTeamDto teamInfo = userInfoService.getUserTeamInfo(fplTeamId);
-        return ResponseEntity.ok().cacheControl(USER_CACHE_CONTROL).body(teamInfo);
+    public ResponseEntity<UserTeamSummaryDto> getUserTeamSummary(@PathVariable long fplTeamId) {
+        UserTeamSummaryDto summary = userInfoService.getUserTeamSummary(fplTeamId);
+        return ResponseEntity.ok().cacheControl(USER_CACHE_CONTROL).body(summary);
+    }
+
+    /**
+     * Returns the full chart data for the given FPL team ID.
+     * Includes player histories, gameweek averages, high scores, and formation loss.
+     *
+     * @param fplTeamId the FPL team identifier
+     * @return 200 with the chart data DTO, or 404 if the team is not found
+     */
+    @GetMapping("/user-info/{fplTeamId}/chart-data")
+    public ResponseEntity<TeamChartDataDto> getTeamChartData(@PathVariable long fplTeamId) {
+        TeamChartDataDto chartData = userInfoService.getTeamChartData(fplTeamId);
+        return ResponseEntity.ok().cacheControl(USER_CACHE_CONTROL).body(chartData);
     }
 
     /**
