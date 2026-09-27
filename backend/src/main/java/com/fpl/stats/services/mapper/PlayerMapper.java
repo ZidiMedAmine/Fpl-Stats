@@ -6,6 +6,7 @@ import com.fpl.stats.domain.UserPick;
 import com.fpl.stats.services.dto.GameWeekPerformance;
 import com.fpl.stats.services.dto.PlayerDetailDto;
 import com.fpl.stats.services.dto.PlayerDto;
+import com.fpl.stats.services.dto.PlayerStubDto;
 import com.fpl.stats.services.dto.PlayerSummaryDto;
 
 import java.util.ArrayList;
@@ -24,6 +25,28 @@ public final class PlayerMapper {
      * Private constructor — this is a static utility class and must not be instantiated.
      */
     private PlayerMapper() {
+    }
+
+    /**
+     * Maps a {@link Player} to a {@link PlayerStubDto} for the fast summary endpoint.
+     * Requires {@code player.team} to be loaded (via EntityGraph on the pick query).
+     *
+     * @param player the player entity with team loaded
+     * @return lightweight stub DTO
+     */
+    public static PlayerStubDto toPlayerStubDto(Player player) {
+        PlayerStubDto dto = new PlayerStubDto();
+        dto.setFplId(player.getFplId());
+        dto.setName(player.getWebName());
+        dto.setPosition(player.getPosition());
+        dto.setCode(player.getCode());
+        dto.setNowCost(player.getNowCost());
+        dto.setStatus(player.getStatus());
+        dto.setTotalPoints(player.getTotalPoints());
+        if (player.getTeam() != null) {
+            dto.setTeamName(player.getTeam().getShortName());
+        }
+        return dto;
     }
 
     /**

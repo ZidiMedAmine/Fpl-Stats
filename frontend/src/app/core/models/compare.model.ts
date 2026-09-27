@@ -1,4 +1,5 @@
 import {Player} from './player.model';
+import {RankHistory} from './UserInfo.model';
 
 export interface CompareTeam {
   fplTeamId: number;
@@ -10,6 +11,7 @@ export interface CompareTeam {
   teamValue: number | null;
   currentGameWeek: number;
   players: Player[];
+  rankHistory: RankHistory[];
 }
 
 export interface CompareResult {

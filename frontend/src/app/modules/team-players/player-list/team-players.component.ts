@@ -5,7 +5,7 @@ import { ActivatedRoute } from '@angular/router';
 import { forkJoin, Subject } from 'rxjs';
 import { switchMap, takeUntil } from 'rxjs/operators';
 import { GameWeekPerformance } from '../../../core/models/game-week-performance.model';
-import { UserInfo } from '../../../core/models/UserInfo.model';
+import { TeamChartData, UserInfo, UserTeamSummary } from '../../../core/models/UserInfo.model';
 import { TransferImpact } from '../../../core/models/transfer-impact.model';
 import { DreamTeam } from '../../../core/models/dream-team.model';
 import { PlayerDetailsComponent } from '../player-details/player-details.component';
@@ -23,16 +23,17 @@ import { LoaderService } from '../../../core/loader.service';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class TeamPlayersComponent implements OnInit, OnDestroy {
-  user?: UserInfo;
   transferImpact: TransferImpact | null = null;
-  dreamTeam: DreamTeam | null = null;
-  isLoading = true;
   isDreamTeamLoading = false;
-  selectedTabIndex = 0;
-  players: Player[] = [];
-  readonly displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
-
+  isChartDataLoading = false;
+  dreamTeam: DreamTeam | null = null;
   showOwnedOnly = false;
+  selectedTabIndex = 0;
+  isLoading = true;
+  players: Player[] = [];
+  user?: UserInfo;
+
+  readonly displayedColumns: string[] = ['photo', 'name', 'position', 'avgPoints', 'timesSelected', 'timesCaptained', 'timesViceCaptained', 'benchPoints', 'timesOnBench', 'playedPoints', 'totalPointsForTeam', 'compare'];
 
   readonly Position = Position;
 
@@ -216,34 +217,29 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
   }
 
   /**
-   * Loads the players for a given team by team ID.
+   * Loads the team summary and transfer impact for the given team ID.
+   * Renders the summary card immediately, then kicks off the slower chart data request.
    *
-   * Fetches the team data from the `teamService`, sets the local user and players properties,
-   * calculates captaincy stats, sorts the players by position, calculates playtime,
-   * and enriches player statistics. Handles loading state and logs any errors.
-   *
-   * @param teamId - The unique identifier of the team whose players should be loaded.
+   * @param teamId - The unique identifier of the team whose data should be loaded.
    */
   private loadTeamPlayers(teamId: number): void {
     this.isLoading = true;
     this.loaderService.show();
     this.teamService.syncUserTeam(teamId).pipe(
       switchMap(() => forkJoin({
-        user: this.teamService.getTeamPlayers(teamId),
+        summary: this.teamService.getTeamSummary(teamId),
         transferImpact: this.teamService.getTransferImpact(teamId)
-      }))
+      })),
+      takeUntil(this.destroy$)
     ).subscribe({
-      next: ({ user, transferImpact }) => {
-        this.user = user;
+      next: ({ summary, transferImpact }) => {
+        this.user = this.buildPartialUserInfo(summary);
         this.transferImpact = transferImpact;
-        this.players = user.players;
         this.updateNavBarDetails(this.user);
-        this.players = this.calculateCaptaincyStats(user.players);
-        this.sortPlayersByPosition();
-        this.enrichPlayerStats();
         this.isLoading = false;
         this.loaderService.hide();
         this.cdr.markForCheck();
+        this.loadChartData(teamId);
       },
       error: (err) => {
         this.isLoading = false;
@@ -258,6 +254,69 @@ export class TeamPlayersComponent implements OnInit, OnDestroy {
         });
       }
     });
+  }
+
+  /**
+   * Fetches the full chart data (player histories, GW averages, formation loss) for the given team.
+   * Called after the fast summary has already rendered the summary card.
+   *
+   * @param teamId - The FPL team ID to fetch chart data for.
+   */
+  private loadChartData(teamId: number): void {
+    this.isChartDataLoading = true;
+    this.cdr.markForCheck();
+    this.teamService.getTeamChartData(teamId).pipe(takeUntil(this.destroy$)).subscribe({
+      next: (chartData: TeamChartData) => {
+        this.players = this.calculateCaptaincyStats(chartData.players);
+        this.sortPlayersByPosition();
+        this.enrichPlayerStats();
+        this.user = {
+          ...this.user!,
+          players: chartData.players,
+          gameWeekAverages: chartData.gameWeekAverages,
+          gameWeekHighScores: chartData.gameWeekHighScores,
+          formationLoss: chartData.formationLoss
+        };
+        this.isChartDataLoading = false;
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.isChartDataLoading = false;
+        this.cdr.markForCheck();
+        this.snackBar.open('Failed to load chart data. Please try again.', 'Dismiss', {
+          duration: 5000,
+          panelClass: 'error-snackbar'
+        });
+      }
+    });
+  }
+
+  /**
+   * Builds a partial {@link UserInfo} from a {@link UserTeamSummary}.
+   * Chart-specific fields are initialised to empty so the template can render immediately.
+   *
+   * @param summary - The lightweight summary returned by the fast endpoint.
+   * @returns A {@link UserInfo} with summary fields populated and chart fields empty.
+   */
+  private buildPartialUserInfo(summary: UserTeamSummary): UserInfo {
+    return {
+      fplTeamId: summary.fplTeamId,
+      name: summary.name,
+      teamName: summary.teamName,
+      region: summary.region,
+      overallRank: summary.overallRank,
+      totalPoints: summary.totalPoints,
+      teamValue: summary.teamValue,
+      bank: summary.bank,
+      totalTransfers: summary.totalTransfers,
+      currentGameWeek: summary.currentGameWeek,
+      rankChange: summary.rankChange,
+      rankHistory: summary.rankHistory,
+      players: [],
+      gameWeekAverages: {},
+      gameWeekHighScores: {},
+      formationLoss: []
+    };
   }
 
   /**

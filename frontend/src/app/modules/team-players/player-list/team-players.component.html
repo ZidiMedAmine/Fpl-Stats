@@ -41,7 +41,9 @@
 
     <!-- Overview Tab -->
     <mat-tab label="Overview">
+      <app-loading-overlay *ngIf="isChartDataLoading"></app-loading-overlay>
       <app-performance-charts
+        *ngIf="!isChartDataLoading"
         [user]="user"
         [teamValue]="user.teamValue"
         [transferImpact]="transferImpact">
@@ -50,9 +52,10 @@
 
     <!-- Player Stats Tab -->
     <mat-tab label="Player stats">
+      <app-loading-overlay *ngIf="isChartDataLoading"></app-loading-overlay>
 
       <!-- Mobile card list (< 600px) -->
-      <div class="mobile-card-list">
+      <div class="mobile-card-list" *ngIf="!isChartDataLoading">
         <ng-container *ngFor="let player of players; trackBy: trackByPlayerCode">
           <div class="player-card">
             <img [appPlayerImage]="player.code" [alt]="player.name" class="card-photo">
@@ -77,7 +80,7 @@
       </div>
 
       <!-- Player Stats Table -->
-      <div class="player-stats-card">
+      <div class="player-stats-card" *ngIf="!isChartDataLoading">
         <div class="player-stats-header-row">
           <div class="player-stats-header">PLAYER STATS</div>
           <div class="ownership-toggle">

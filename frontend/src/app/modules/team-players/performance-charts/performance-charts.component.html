@@ -271,6 +271,25 @@
         <canvas baseChart [data]="formationGwPointsChart" [options]="formationGwPointsOptions" [type]="'bar'"></canvas>
       </div>
     </div>
+
+    <div class="weekly-summary-row formation-loss-summary">
+      <div class="weekly-stat">
+        <span class="weekly-stat-value transfer-negative">{{ formationLossSummary.totalLost }}</span>
+        <span class="weekly-stat-label">Total pts lost to bench</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value transfer-negative">GW{{ formationLossSummary.worstGw }} ({{ formationLossSummary.worstGwLoss }} pts)</span>
+        <span class="weekly-stat-label">Worst gameweek</span>
+      </div>
+      <div class="weekly-stat">
+        <span class="weekly-stat-value">{{ formationLossSummary.optimalGws }}</span>
+        <span class="weekly-stat-label">GWs with optimal bench</span>
+      </div>
+    </div>
+    <div class="doughnut-title">Points Lost to Suboptimal Lineup — per Gameweek</div>
+    <div class="chart-container">
+      <canvas baseChart [data]="formationLossChart" [options]="formationLossOptions" [type]="'bar'"></canvas>
+    </div>
   </div>
 
   <div *ngIf="activeChart === 'transfers' && transferImpact" class="bench-section">

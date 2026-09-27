@@ -2,7 +2,7 @@ import {Injectable} from '@angular/core';
 import {HttpClient} from '@angular/common/http';
 import {Observable} from 'rxjs';
 import {map, shareReplay} from 'rxjs/operators';
-import {UserInfo} from '../models/UserInfo.model';
+import {TeamChartData, UserTeamSummary} from '../models/UserInfo.model';
 import {CompareResult} from '../models/compare.model';
 import {TransferImpact} from '../models/transfer-impact.model';
 import {DreamTeam} from '../models/dream-team.model';
@@ -15,10 +15,11 @@ import {environment} from '../../../environments/environment';
   providedIn: 'root'
 })
 export class TeamService {
-  private readonly apiUrl = `${environment.apiBaseUrl}/fpl`;
   private readonly syncUrl = `${environment.apiBaseUrl}/fpl-sync`;
+  private readonly apiUrl = `${environment.apiBaseUrl}/fpl`;
 
-  private readonly teamCache = new Map<number, Observable<UserInfo>>();
+  private readonly summaryCache = new Map<number, Observable<UserTeamSummary>>();
+  private readonly chartDataCache = new Map<number, Observable<TeamChartData>>();
   private readonly compareCache = new Map<string, Observable<CompareResult>>();
   private dreamTeamCache: Observable<DreamTeam> | null = null;
 
@@ -31,26 +32,45 @@ export class TeamService {
    * @returns An observable that completes when the sync is done.
    */
   syncUserTeam(teamId: number): Observable<void> {
-    this.teamCache.delete(teamId);
+    this.summaryCache.delete(teamId);
+    this.chartDataCache.delete(teamId);
     return this.http.post(`${this.syncUrl}/user-teams/${teamId}`, null, {responseType: 'text'}).pipe(
       map(() => void 0)
     );
   }
 
   /**
-   * Returns the team players and info for the given FPL team ID.
+   * Returns the lightweight team summary for the given FPL team ID.
+   * This is the fast endpoint — no player history is loaded.
    * Results are cached per team ID.
    *
    * @param teamId - The FPL team ID to fetch.
-   * @returns An observable emitting the {@link UserInfo}.
+   * @returns An observable emitting the {@link UserTeamSummary}.
    */
-  getTeamPlayers(teamId: number): Observable<UserInfo> {
-    if (!this.teamCache.has(teamId)) {
-      this.teamCache.set(teamId,
-        this.http.get<UserInfo>(`${this.apiUrl}/user-info/${teamId}`).pipe(shareReplay(1))
+  getTeamSummary(teamId: number): Observable<UserTeamSummary> {
+    if (!this.summaryCache.has(teamId)) {
+      this.summaryCache.set(teamId,
+        this.http.get<UserTeamSummary>(`${this.apiUrl}/user-info/${teamId}`).pipe(shareReplay(1))
       );
     }
-    return this.teamCache.get(teamId)!;
+    return this.summaryCache.get(teamId)!;
+  }
+
+  /**
+   * Returns the full chart data for the given FPL team ID.
+   * This is the slow endpoint — loads all player histories.
+   * Results are cached per team ID.
+   *
+   * @param teamId - The FPL team ID to fetch.
+   * @returns An observable emitting the {@link TeamChartData}.
+   */
+  getTeamChartData(teamId: number): Observable<TeamChartData> {
+    if (!this.chartDataCache.has(teamId)) {
+      this.chartDataCache.set(teamId,
+        this.http.get<TeamChartData>(`${this.apiUrl}/user-info/${teamId}/chart-data`).pipe(shareReplay(1))
+      );
+    }
+    return this.chartDataCache.get(teamId)!;
   }
 
   /**

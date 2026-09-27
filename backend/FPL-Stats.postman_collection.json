@@ -1,0 +1,217 @@
+{
+	"info": {
+		"name": "FPL Stats API",
+		"description": "FPL Stats backend API collection.\n\n**Test order:**\n1. Sync Global Data (teams, players, gameweeks)\n2. Sync Player Histories\n3. Sync User Picks (syncs team + picks in one call)\n4. Get Team Summary (fast — no player history)\n5. Get Team Chart Data (slow — full player histories)\n6. Compare Teams\n7. Get Players by Position (for Compare Players dialog)\n8. Get Player Detail (for Compare Players dialog)",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "http://localhost:8080",
+			"type": "string"
+		},
+		{
+			"key": "fplTeamId",
+			"value": "12345",
+			"type": "string"
+		},
+		{
+			"key": "fplTeamId2",
+			"value": "67890",
+			"type": "string"
+		}
+	],
+	"item": [
+		{
+			"name": "Sync",
+			"description": "Endpoints that sync data from the FPL API into the database.",
+			"item": [
+				{
+					"name": "Sync Global Data",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl-sync/global",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl-sync", "global"]
+						},
+						"description": "Syncs teams (20), gameweeks (38), and players (~600) from the FPL bootstrap-static endpoint into the database. Run this first."
+					}
+				},
+				{
+					"name": "Sync Player Histories",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl-sync/player-histories",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl-sync", "player-histories"]
+						},
+						"description": "Syncs gameweek-by-gameweek history for all players. Uses parallel batching (10 threads). Takes a while (~600 API calls). Only works after global sync and when gameweeks are completed."
+					}
+				},
+				{
+					"name": "Sync User Team",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl-sync/user-teams/{{fplTeamId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl-sync", "user-teams", "{{fplTeamId}}"]
+						},
+						"description": "Syncs a user's team metadata (name, rank, points) from the FPL entry endpoint."
+					}
+				},
+				{
+					"name": "Sync User Picks",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl-sync/user-picks/{{fplTeamId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl-sync", "user-picks", "{{fplTeamId}}"]
+						},
+						"description": "Syncs a user's gameweek picks (captain, bench, multiplier). Requires user team to be synced first. Only syncs completed gameweeks."
+					}
+				}
+			]
+		},
+		{
+			"name": "Query",
+			"description": "Read-only endpoints that query from the database (zero FPL API calls).",
+			"item": [
+				{
+					"name": "Get Team Summary (fast)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl/user-info/{{fplTeamId}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl", "user-info", "{{fplTeamId}}"]
+						},
+						"description": "Returns lightweight team summary: metadata, rank history, and player stubs. No player history loaded — fast response used to render the summary card immediately."
+					}
+				},
+				{
+					"name": "Get Team Chart Data (slow)",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl/user-info/{{fplTeamId}}/chart-data",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl", "user-info", "{{fplTeamId}}", "chart-data"]
+						},
+						"description": "Returns full chart data: player histories with per-GW performances, gameweek averages, high scores, and formation loss. Called after the fast summary is already displayed."
+					}
+				},
+				{
+					"name": "Compare Teams",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl/compare?team1={{fplTeamId}}&team2={{fplTeamId2}}",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl", "compare"],
+							"query": [
+								{
+									"key": "team1",
+									"value": "{{fplTeamId}}"
+								},
+								{
+									"key": "team2",
+									"value": "{{fplTeamId2}}"
+								}
+							]
+						},
+						"description": "Compares two teams: shared players, differentials, and points-by-gameweek breakdown."
+					}
+				},
+				{
+					"name": "Get Players by Position",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl/players?position=MID",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl", "players"],
+							"query": [
+								{
+									"key": "position",
+									"value": "MID",
+									"description": "One of: GKP, DEF, MID, FWD"
+								}
+							]
+						},
+						"description": "Returns a summary list of all FPL players for a given position, ordered by total points descending. Used to populate the search dropdown in the Compare Players dialog."
+					}
+				},
+				{
+					"name": "Get Player Detail",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/api/fpl/players/301",
+							"host": ["{{baseUrl}}"],
+							"path": ["api", "fpl", "players", "301"]
+						},
+						"description": "Returns full player detail including all gameweek-by-gameweek performance history. Used to populate the Compare Players dialog stats and charts. Replace 301 with the player's FPL element ID."
+					}
+				}
+			]
+		},
+		{
+			"name": "Health",
+			"description": "Actuator and monitoring endpoints.",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/actuator/health",
+							"host": ["{{baseUrl}}"],
+							"path": ["actuator", "health"]
+						},
+						"description": "Returns application health status."
+					}
+				},
+				{
+					"name": "App Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/actuator/info",
+							"host": ["{{baseUrl}}"],
+							"path": ["actuator", "info"]
+						},
+						"description": "Returns application info."
+					}
+				},
+				{
+					"name": "Caches",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/actuator/caches",
+							"host": ["{{baseUrl}}"],
+							"path": ["actuator", "caches"]
+						},
+						"description": "Returns cache status (bootstrap, teamPicks, tripleCaptainWeek)."
+					}
+				}
+			]
+		}
+	]
+}

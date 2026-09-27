@@ -4,8 +4,7 @@ import { CHART_COLORS } from '../../core/chart-colors.constants';
 import { forkJoin, switchMap } from 'rxjs';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { TeamService } from '../../core/services/team.service';
-import { CompareResult } from '../../core/models/compare.model';
-import { UserInfo } from '../../core/models/UserInfo.model';
+import { CompareResult, CompareTeam } from '../../core/models/compare.model';
 import { TransferImpact } from '../../core/models/transfer-impact.model';
 import { Position } from '../../core/models/player.model';
 import { MatSnackBar } from '@angular/material/snack-bar';
@@ -295,17 +294,15 @@ export class CompareTeamsComponent {
     ]).pipe(
       switchMap(() => forkJoin([
         this.teamService.compareTeams(id1, id2),
-        this.teamService.getTeamPlayers(id1),
-        this.teamService.getTeamPlayers(id2),
         this.teamService.getTransferImpact(id1),
         this.teamService.getTransferImpact(id2)
       ])),
       takeUntilDestroyed(this.destroyRef)
     ).subscribe({
-      next: ([compareResult, user1, user2, transferImpact1, transferImpact2]) => {
+      next: ([compareResult, transferImpact1, transferImpact2]) => {
         this.transferImpact1 = transferImpact1;
         this.transferImpact2 = transferImpact2;
-        this.onCompareLoaded(compareResult, user1, user2);
+        this.onCompareLoaded(compareResult, compareResult.team1, compareResult.team2);
       },
       error: () => {
         this.isLoading = false;
@@ -325,7 +322,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's full user info.
    * @param user2 - Second team's full user info.
    */
-  private onCompareLoaded(compareResult: CompareResult, user1: UserInfo, user2: UserInfo): void {
+  private onCompareLoaded(compareResult: CompareResult, user1: CompareTeam, user2: CompareTeam): void {
     this.result = compareResult;
     this.result.team1Differentials.sort((a, b) => (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99));
     this.result.team2Differentials.sort((a, b) => (POSITION_ORDER[a.position] ?? 99) - (POSITION_ORDER[b.position] ?? 99));
@@ -412,7 +409,7 @@ export class CompareTeamsComponent {
    * @param user - The user whose rank history to scan for chip events.
    * @returns A sorted array of {@link ChipEvent} objects.
    */
-  private extractChipEvents(user: UserInfo): ChipEvent[] {
+  private extractChipEvents(user: CompareTeam): ChipEvent[] {
     return (user.rankHistory ?? [])
       .filter(rank => rank.chipUsed)
       .map(rank => {
@@ -439,7 +436,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's user info.
    * @param user2 - Second team's user info.
    */
-  private buildTotalPointsChart(user1: UserInfo, user2: UserInfo): void {
+  private buildTotalPointsChart(user1: CompareTeam, user2: CompareTeam): void {
     const history1 = (user1.rankHistory ?? []).sort((a, b) => a.gameWeek - b.gameWeek);
     const history2 = (user2.rankHistory ?? []).sort((a, b) => a.gameWeek - b.gameWeek);
     const labels = history1.map(rank => `GW${rank.gameWeek}`);
@@ -512,7 +509,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's user info.
    * @param user2 - Second team's user info.
    */
-  private buildRankChart(user1: UserInfo, user2: UserInfo): void {
+  private buildRankChart(user1: CompareTeam, user2: CompareTeam): void {
     const history1 = (user1.rankHistory ?? []).sort((a, b) => a.gameWeek - b.gameWeek);
     const history2 = (user2.rankHistory ?? []).sort((a, b) => a.gameWeek - b.gameWeek);
     const labels = history1.map(rank => `GW${rank.gameWeek}`);
@@ -551,7 +548,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's user info.
    * @param user2 - Second team's user info.
    */
-  private buildTeamValueChart(user1: UserInfo, user2: UserInfo): void {
+  private buildTeamValueChart(user1: CompareTeam, user2: CompareTeam): void {
     const history1 = (user1.rankHistory ?? []).filter(rank => rank.teamValue != null).sort((a, b) => a.gameWeek - b.gameWeek);
     const history2 = (user2.rankHistory ?? []).filter(rank => rank.teamValue != null).sort((a, b) => a.gameWeek - b.gameWeek);
     const labels = history1.map(rank => `GW${rank.gameWeek}`);
@@ -590,7 +587,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's user info.
    * @param user2 - Second team's user info.
    */
-  private buildCaptainChart(user1: UserInfo, user2: UserInfo): void {
+  private buildCaptainChart(user1: CompareTeam, user2: CompareTeam): void {
     const cap1 = this.getCaptainPointsPerGW(user1);
     const cap2 = this.getCaptainPointsPerGW(user2);
     const gameWeeks = Array.from(new Set([...cap1.keys(), ...cap2.keys()])).sort((a, b) => a - b);
@@ -629,7 +626,7 @@ export class CompareTeamsComponent {
    * @param user1 - First team's user info.
    * @param user2 - Second team's user info.
    */
-  private buildFormationComparisonChart(user1: UserInfo, user2: UserInfo): void {
+  private buildFormationComparisonChart(user1: CompareTeam, user2: CompareTeam): void {
     const map1 = this.computeFormationAvgMap(user1);
     const map2 = this.computeFormationAvgMap(user2);
     const allFormations = Array.from(new Set([...map1.keys(), ...map2.keys()]));
@@ -668,7 +665,7 @@ export class CompareTeamsComponent {
    * @param user - The user whose formations to aggregate.
    * @returns A map of formation (e.g. `"4-3-3"`) to rounded average GW points.
    */
-  private computeFormationAvgMap(user: UserInfo): Map<string, number> {
+  private computeFormationAvgMap(user: CompareTeam): Map<string, number> {
     const pointsMap = new Map<string, number[]>();
     for (let gw = 1; gw <= user.currentGameWeek; gw++) {
       const formation = this.deriveFormation(user, gw);
@@ -692,7 +689,7 @@ export class CompareTeamsComponent {
    * @param gameWeek - The gameweek number to derive a formation for.
    * @returns A formation string like `"4-3-3"`, or `null` if data is incomplete.
    */
-  private deriveFormation(user: UserInfo, gameWeek: number): string | null {
+  private deriveFormation(user: CompareTeam, gameWeek: number): string | null {
     const count = (position: string) =>
       user.players.filter(player => player.position === position &&
         player.performances.some(perf => perf.gameWeek === gameWeek && perf.wasInMyTeam && !perf.wasBenched)
@@ -710,7 +707,7 @@ export class CompareTeamsComponent {
    * @param gameWeek - The gameweek number to compute.
    * @returns Total points scored by the team that gameweek.
    */
-  private computeGwPoints(user: UserInfo, gameWeek: number): number {
+  private computeGwPoints(user: CompareTeam, gameWeek: number): number {
     let total = 0;
     user.players.forEach(player => {
       const perf = player.performances.find(performance => performance.gameWeek === gameWeek && performance.wasInMyTeam);
@@ -797,7 +794,7 @@ export class CompareTeamsComponent {
    * @param user - The user whose captain picks to aggregate.
    * @returns A map of gameweek number to the captain's effective points that week.
    */
-  private getCaptainPointsPerGW(user: UserInfo): Map<number, { points: number; name: string }> {
+  private getCaptainPointsPerGW(user: CompareTeam): Map<number, { points: number; name: string }> {
     const map = new Map<number, { points: number; name: string }>();
     for (const player of user.players) {
       if (player.position === Position.Manager) continue;
